@@ -2,10 +2,7 @@ package se.helsingborg.oppna.solarie.prevalence.transactions.atgard;
 
 import org.prevayler.TransactionWithQuery;
 import se.helsingborg.oppna.solarie.Solarie;
-import se.helsingborg.oppna.solarie.prevalence.domain.Arende;
-import se.helsingborg.oppna.solarie.prevalence.domain.Atgard;
-import se.helsingborg.oppna.solarie.prevalence.domain.Enhet;
-import se.helsingborg.oppna.solarie.prevalence.domain.Root;
+import se.helsingborg.oppna.solarie.prevalence.domain.*;
 import se.helsingborg.oppna.solarie.prevalence.transactions.IdentityFactory;
 
 import java.util.Date;
@@ -45,7 +42,6 @@ public class CreateAtgard implements TransactionWithQuery<Root, Atgard> {
 
   @Override
   public Atgard executeAndQuery(Root root, Date executionTime) throws Exception {
-
 
     if (identity == null) {
       throw new IllegalArgumentException("Identity is not set!");

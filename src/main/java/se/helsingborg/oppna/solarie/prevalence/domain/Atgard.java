@@ -32,6 +32,9 @@ public class Atgard implements Identitfiable {
   private List<Dokument> dokument;
 
 
+  // getters & setters
+
+
   @Override
   public Long getIdentity() {
     return identity;

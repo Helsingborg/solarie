@@ -4,6 +4,7 @@ import org.prevayler.TransactionWithQuery;
 import se.helsingborg.oppna.solarie.Solarie;
 import se.helsingborg.oppna.solarie.prevalence.domain.Arende;
 import se.helsingborg.oppna.solarie.prevalence.domain.Diarienummer;
+import se.helsingborg.oppna.solarie.prevalence.domain.Diarium;
 import se.helsingborg.oppna.solarie.prevalence.domain.Root;
 import se.helsingborg.oppna.solarie.prevalence.transactions.IdentityFactory;
 
@@ -17,25 +18,38 @@ public class CreateArende implements TransactionWithQuery<Root, Arende> {
 
   private static final long serialVersionUID = 1l;
 
+  private Long diariumIdentity;
   private Long identity;
   private Diarienummer diarienummer;
 
   public CreateArende() {
   }
 
-  public CreateArende(Diarienummer diarienummer) throws Exception {
+  public CreateArende(Diarium diarium, Diarienummer diarienummer) throws Exception {
+    this.diariumIdentity = diarium.getIdentity();
     this.identity = Solarie.getInstance().getPrevayler().execute(new IdentityFactory());
     this.diarienummer = diarienummer;
   }
 
-  public CreateArende(Long identity, Diarienummer diarienummer) {
+  public CreateArende(Long diariumIdentity, Long identity, Diarienummer diarienummer) {
+    this.diariumIdentity = diariumIdentity;
     this.identity = identity;
     this.diarienummer = diarienummer;
   }
 
   @Override
   public Arende executeAndQuery(Root root, Date executionTime) throws Exception {
-    Arende ärende = new Arende();
+
+    if (diariumIdentity == null) {
+      throw new IllegalArgumentException("Diarium identity is not set!");
+    }
+
+    Diarium diarium = root.getDiariumByIdentity().get(diariumIdentity);
+
+    if (diarium == null) {
+      throw new IllegalArgumentException("No diarium with that identity! " + diariumIdentity);
+    }
+
 
     if (identity == null) {
       throw new IllegalArgumentException("Identity is not set!");
@@ -46,16 +60,20 @@ public class CreateArende implements TransactionWithQuery<Root, Arende> {
     if (diarienummer == null) {
       throw new IllegalArgumentException("Diarienummer is not set!");
     }
-    if (root.getÄrendeByDiarienummer().containsKey(diarienummer)) {
+    if (diarium.getÄrendeByDiarienummer().containsKey(diarienummer)) {
       throw new IllegalArgumentException("It already exists an ärende with this diarienummer! " + diarienummer);
     }
 
+
+    Arende ärende = new Arende();
+
     ärende.setDiarienummer(diarienummer);
     ärende.setIdentity(identity);
+    ärende.setDiarium(diarium);
 
     root.getIdentifiables().put(identity, ärende);
     root.getÄrendeByIdentity().put(identity, ärende);
-    root.getÄrendeByDiarienummer().put(diarienummer, ärende);
+    diarium.getÄrendeByDiarienummer().put(diarienummer, ärende);
     return ärende;
   }
 

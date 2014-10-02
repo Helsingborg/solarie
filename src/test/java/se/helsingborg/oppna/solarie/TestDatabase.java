@@ -11,7 +11,7 @@ public class TestDatabase extends TestCase {
 
   public void testDiarienummerFactory() {
 
-    Diarienummer diarienummer = Database.diarienummerFactory("201100167");
+    Diarienummer diarienummer = DiariumSyncronizer.diarienummerFactory("201100167");
     assertEquals("2011", diarienummer.getÅr());
     assertEquals("00167", diarienummer.getLöpnummer());
 

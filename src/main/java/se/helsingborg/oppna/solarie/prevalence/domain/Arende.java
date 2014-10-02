@@ -7,12 +7,14 @@ import java.util.Map;
  * @author kalle
  * @since 2014-09-17 11:30
  */
-public class Arende implements Identitfiable {
+public class Arende implements Identitfiable, DiariumBound {
 
   private static final long serialVersionUID = 1l;
 
   /** Internal solarie identity */
   private Long identity;
+
+  private Diarium diarium;
 
   private Map<Short, Atgard> åtgärderByNummer = new HashMap<>(5);
 
@@ -45,6 +47,16 @@ public class Arende implements Identitfiable {
 
   // getters & setters
 
+
+  @Override
+  public Diarium getDiarium() {
+    return diarium;
+  }
+
+  @Override
+  public void setDiarium(Diarium diarium) {
+    this.diarium = diarium;
+  }
 
   public Anvandare getÄgare() {
     return ägare;

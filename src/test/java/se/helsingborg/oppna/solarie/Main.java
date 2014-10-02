@@ -1,6 +1,8 @@
 package se.helsingborg.oppna.solarie;
 
-import java.sql.Connection;
+import se.helsingborg.oppna.solarie.prevalence.domain.Diarium;
+import se.helsingborg.oppna.solarie.prevalence.transactions.IdentityFactory;
+import se.helsingborg.oppna.solarie.prevalence.transactions.diarium.CreateDiarium;
 
 /**
  * @author kalle
@@ -13,8 +15,10 @@ public class Main {
     Solarie.getInstance().open();
     try {
 
-
-      Solarie.getInstance().getDatabase().importNewEntriesSince(0l);
+      for (Diarium diarium : Solarie.getInstance().getPrevayler().prevalentSystem().getDiariumByIdentity().values()) {
+        new DiariumSyncronizer(diarium).synchronize();
+        System.currentTimeMillis();
+      }
 
     } finally {
       Solarie.getInstance().close();

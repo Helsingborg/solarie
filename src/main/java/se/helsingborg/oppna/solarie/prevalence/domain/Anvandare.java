@@ -8,11 +8,13 @@ import java.util.List;
  * @author kalle
  * @since 2014-09-17 11:20
  */
-public class Anvandare implements Identitfiable {
+public class Anvandare implements Identitfiable, DiariumBound {
 
   private static final long serialVersionUID = 1l;
 
   private Long identity;
+
+  private Diarium diarium;
 
   private String signatur;
   private String namn;
@@ -30,9 +32,20 @@ public class Anvandare implements Identitfiable {
 
   private List<Atgard> ägdaÅtgärder = new ArrayList<>(100);
 
+  private List<Enhet> enhetsansvar = new ArrayList<>(100);
+
 
   // getters & setters
 
+  @Override
+  public Diarium getDiarium() {
+    return diarium;
+  }
+
+  @Override
+  public void setDiarium(Diarium diarium) {
+    this.diarium = diarium;
+  }
 
   public List<Arende> getModifieradeÄrenden() {
     return modifieradeÄrenden;
@@ -138,5 +151,13 @@ public class Anvandare implements Identitfiable {
 
   public void setÄgdaÅtgärder(List<Atgard> ägdaÅtgärder) {
     this.ägdaÅtgärder = ägdaÅtgärder;
+  }
+
+  public List<Enhet> getEnhetsansvar() {
+    return enhetsansvar;
+  }
+
+  public void setEnhetsansvar(List<Enhet> enhetsansvar) {
+    this.enhetsansvar = enhetsansvar;
   }
 }

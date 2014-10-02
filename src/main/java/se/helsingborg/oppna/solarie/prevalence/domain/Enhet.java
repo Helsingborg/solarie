@@ -8,11 +8,13 @@ import java.util.List;
  * @author kalle
  * @since 2014-10-02 04:16
  */
-public class Enhet implements Identitfiable {
+public class Enhet implements Identitfiable, DiariumBound {
 
   private static final long serialVersionUID = 1l;
 
   private Long identity;
+
+  private Diarium diarium;
 
   private Long modifierad;
 
@@ -25,6 +27,16 @@ public class Enhet implements Identitfiable {
   private List<Atgard> åtgärder = new ArrayList<>(1000);
 
   // getters and setters
+
+  @Override
+  public Diarium getDiarium() {
+    return diarium;
+  }
+
+  @Override
+  public void setDiarium(Diarium diarium) {
+    this.diarium = diarium;
+  }
 
 
   public List<Arende> getÄrenden() {

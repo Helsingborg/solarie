@@ -2,7 +2,7 @@ package se.helsingborg.oppna.solarie.prevalence.transactions.enhet;
 
 import org.prevayler.TransactionWithQuery;
 import se.helsingborg.oppna.solarie.Solarie;
-import se.helsingborg.oppna.solarie.prevalence.domain.Anvandare;
+import se.helsingborg.oppna.solarie.prevalence.domain.Diarium;
 import se.helsingborg.oppna.solarie.prevalence.domain.Enhet;
 import se.helsingborg.oppna.solarie.prevalence.domain.Root;
 import se.helsingborg.oppna.solarie.prevalence.transactions.IdentityFactory;
@@ -17,25 +17,37 @@ public class CreateEnhet implements TransactionWithQuery<Root, Enhet> {
 
   private static final long serialVersionUID = 1l;
 
+  private Long diariumIdentity;
   private Long identity;
   private String kod;
 
   public CreateEnhet() {
   }
 
-  public CreateEnhet(String kod) throws Exception {
+  public CreateEnhet(Diarium diarium, String kod) throws Exception {
+    this.diariumIdentity = diarium.getIdentity();
     this.identity = Solarie.getInstance().getPrevayler().execute(new IdentityFactory());
     this.kod = kod;
   }
 
-  public CreateEnhet(Long identity, String kod) {
+  public CreateEnhet(Long diariumIdentity, Long identity, String kod) {
+    this.diariumIdentity = diariumIdentity;
     this.identity = identity;
     this.kod = kod;
   }
 
   @Override
   public Enhet executeAndQuery(Root root, Date executionTime) throws Exception {
-    Enhet enhet = new Enhet();
+
+    if (diariumIdentity == null) {
+      throw new IllegalArgumentException("Diarium identity is not set!");
+    }
+
+    Diarium diarium = root.getDiariumByIdentity().get(diariumIdentity);
+
+    if (diarium == null) {
+      throw new IllegalArgumentException("No diarium with that identity! " + diariumIdentity);
+    }
 
     if (identity == null) {
       throw new IllegalArgumentException("Identity is not set!");
@@ -46,16 +58,18 @@ public class CreateEnhet implements TransactionWithQuery<Root, Enhet> {
     if (kod == null) {
       throw new IllegalArgumentException("Kod is not set!");
     }
-    if (root.getAnvändareBySignatur().containsKey(kod)) {
+    if (diarium.getAnvändareBySignatur().containsKey(kod)) {
       throw new IllegalArgumentException("It already exists an enhet with this kod! " + kod);
     }
+
+    Enhet enhet = new Enhet();
 
     enhet.setKod(kod);
     enhet.setIdentity(identity);
 
     root.getIdentifiables().put(identity, enhet);
     root.getEnhetByIdentity().put(identity, enhet);
-    root.getEnhetByKod().put(kod, enhet);
+    diarium.getEnhetByKod().put(kod, enhet);
     return enhet;
 
   }
