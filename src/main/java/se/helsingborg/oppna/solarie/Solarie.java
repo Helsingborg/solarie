@@ -7,7 +7,9 @@ import org.prevayler.Prevayler;
 import org.prevayler.PrevaylerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.helsingborg.oppna.solarie.prevalence.domain.Root;
+import se.helsingborg.oppna.solarie.domain.Diarium;
+import se.helsingborg.oppna.solarie.domain.Root;
+import se.helsingborg.oppna.solarie.index.SolarieIndex;
 import se.helsingborg.oppna.solarie.prevalence.transactions.IdentityFactory;
 import se.helsingborg.oppna.solarie.prevalence.transactions.diarium.CreateDiarium;
 
@@ -36,7 +38,9 @@ public class Solarie {
   }
 
   private File dataPath;
+
   private Prevayler<Root> prevayler;
+  private SolarieIndex index;
 
   public void open() throws Exception {
 
@@ -62,9 +66,9 @@ public class Solarie {
     prevayler = prevaylerFactory.create();
 
     // index
-    // todo
 
-
+    index = new SolarieIndex();
+    index.open(new File(dataPath, "index"));
 
 
     // initialize from resource if no diarier in root
@@ -82,24 +86,40 @@ public class Solarie {
       }
       for (int i = 0; i < diarierJSON.length(); i++) {
         JSONObject diariumJSON = diarierJSON.getJSONObject(i);
-        log.info("Creating diarium from " + diariumJSON.toString());
         CreateDiarium createDiarium = new CreateDiarium();
         createDiarium.setIdentity(prevayler.execute(new IdentityFactory()));
         createDiarium.setNamn(diariumJSON.getString("namn"));
         createDiarium.setJdbcURL(diariumJSON.getString("jdbcURL"));
-        prevayler.execute(createDiarium);
+        Diarium diarium = prevayler.execute(createDiarium);
+        log.info("Created diarium with identity " + diarium.getIdentity() + " from " + diariumJSON.toString());
+
       }
 
+    } else {
+      index.reconstruct();
     }
 
 
   }
 
+  public File getDataPath() {
+    return dataPath;
+  }
+
+  public void setDataPath(File dataPath) {
+    this.dataPath = dataPath;
+  }
+
   public void close() throws Exception {
+    index.close();
     prevayler.close();
   }
 
   public Prevayler<Root> getPrevayler() {
     return prevayler;
+  }
+
+  public SolarieIndex getIndex() {
+    return index;
   }
 }

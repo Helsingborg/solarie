@@ -1,4 +1,4 @@
-package se.helsingborg.oppna.solarie.prevalence.domain;
+package se.helsingborg.oppna.solarie.domain;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -15,10 +15,12 @@ public class Root implements Serializable {
 
   private AtomicLong identityFactory = new AtomicLong(0);
 
-  private Map<Long, Object> identifiables = new HashMap<>(10000);
+  private Map<Long, Identitfiable> identifiables = new HashMap<>(10000);
 
   private Map<Long, Arende> ärendeByIdentity = new HashMap<>(10000);
   private Map<Long, Atgard> åtgärdByIdentity = new HashMap<>(10000);
+  private Map<Long, Dokument> dokumentByIdentity = new HashMap<>(10000);
+
   private Map<Long, Anvandare> användareByIdentity = new HashMap<>(250);
   private Map<Long, Enhet> enhetByIdentity = new HashMap<>(250);
 
@@ -35,11 +37,11 @@ public class Root implements Serializable {
     this.identityFactory = identityFactory;
   }
 
-  public Map<Long, Object> getIdentifiables() {
+  public Map<Long, Identitfiable> getIdentifiables() {
     return identifiables;
   }
 
-  public void setIdentifiables(Map<Long, Object> identifiables) {
+  public void setIdentifiables(Map<Long, Identitfiable> identifiables) {
     this.identifiables = identifiables;
   }
 
@@ -81,5 +83,13 @@ public class Root implements Serializable {
 
   public void setDiariumByIdentity(Map<Long, Diarium> diariumByIdentity) {
     this.diariumByIdentity = diariumByIdentity;
+  }
+
+  public Map<Long, Dokument> getDokumentByIdentity() {
+    return dokumentByIdentity;
+  }
+
+  public void setDokumentByIdentity(Map<Long, Dokument> dokumentByIdentity) {
+    this.dokumentByIdentity = dokumentByIdentity;
   }
 }

@@ -1,7 +1,7 @@
 package se.helsingborg.oppna.solarie;
 
 import junit.framework.TestCase;
-import se.helsingborg.oppna.solarie.prevalence.domain.Diarienummer;
+import se.helsingborg.oppna.solarie.domain.Diarienummer;
 
 /**
  * @author kalle
@@ -11,7 +11,7 @@ public class TestDatabase extends TestCase {
 
   public void testDiarienummerFactory() {
 
-    Diarienummer diarienummer = DiariumSyncronizer.diarienummerFactory("201100167");
+    Diarienummer diarienummer = DiariumSynchronizer.diarienummerFactory("201100167");
     assertEquals("2011", diarienummer.getÅr());
     assertEquals("00167", diarienummer.getLöpnummer());
 

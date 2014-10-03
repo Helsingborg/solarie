@@ -1,4 +1,4 @@
-package se.helsingborg.oppna.solarie.prevalence.domain;
+package se.helsingborg.oppna.solarie.domain;
 
 import java.util.HashMap;
 import java.util.Map;

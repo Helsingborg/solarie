@@ -2,10 +2,10 @@ package se.helsingborg.oppna.solarie.prevalence.transactions.arende;
 
 import org.prevayler.TransactionWithQuery;
 import se.helsingborg.oppna.solarie.Solarie;
-import se.helsingborg.oppna.solarie.prevalence.domain.Arende;
-import se.helsingborg.oppna.solarie.prevalence.domain.Diarienummer;
-import se.helsingborg.oppna.solarie.prevalence.domain.Diarium;
-import se.helsingborg.oppna.solarie.prevalence.domain.Root;
+import se.helsingborg.oppna.solarie.domain.Arende;
+import se.helsingborg.oppna.solarie.domain.Diarienummer;
+import se.helsingborg.oppna.solarie.domain.Diarium;
+import se.helsingborg.oppna.solarie.domain.Root;
 import se.helsingborg.oppna.solarie.prevalence.transactions.IdentityFactory;
 
 import java.util.Date;

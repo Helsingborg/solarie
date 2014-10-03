@@ -1,15 +1,17 @@
-package se.helsingborg.oppna.solarie.prevalence.domain;
-
-import java.io.Serializable;
+package se.helsingborg.oppna.solarie.domain;
 
 /**
  * @author kalle
  * @since 2014-10-01 22:48
  */
-public class Dokument implements Identitfiable, DiariumBound {
+public class Dokument implements Identitfiable, DiariumBound, Indexable {
 
   private static final long serialVersionUID = 1l;
 
+  @Override
+  public <R> R accept(IndexableVisitor<R> visitor) {
+    return visitor.visit(this);
+  }
 
   /** Internal solarie identity */
   private Long identity;

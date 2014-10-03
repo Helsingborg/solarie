@@ -1,8 +1,6 @@
 package se.helsingborg.oppna.solarie;
 
-import se.helsingborg.oppna.solarie.prevalence.domain.Diarium;
-import se.helsingborg.oppna.solarie.prevalence.transactions.IdentityFactory;
-import se.helsingborg.oppna.solarie.prevalence.transactions.diarium.CreateDiarium;
+import se.helsingborg.oppna.solarie.domain.Diarium;
 
 /**
  * @author kalle
@@ -16,7 +14,7 @@ public class Main {
     try {
 
       for (Diarium diarium : Solarie.getInstance().getPrevayler().prevalentSystem().getDiariumByIdentity().values()) {
-        new DiariumSyncronizer(diarium).synchronize();
+        DiariumSynchronizer.getInstance(diarium).synchronize();
         System.currentTimeMillis();
       }
 

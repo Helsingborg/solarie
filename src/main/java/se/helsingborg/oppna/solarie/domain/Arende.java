@@ -1,4 +1,4 @@
-package se.helsingborg.oppna.solarie.prevalence.domain;
+package se.helsingborg.oppna.solarie.domain;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -7,16 +7,21 @@ import java.util.Map;
  * @author kalle
  * @since 2014-09-17 11:30
  */
-public class Arende implements Identitfiable, DiariumBound {
+public class Arende implements Identitfiable, DiariumBound, Indexable {
 
   private static final long serialVersionUID = 1l;
+
+  @Override
+  public <R> R accept(IndexableVisitor<R> visitor) {
+    return visitor.visit(this);
+  }
 
   /** Internal solarie identity */
   private Long identity;
 
   private Diarium diarium;
 
-  private Map<Short, Atgard> åtgärderByNummer = new HashMap<>(5);
+  private Map<Short, Atgard> åtgärderByNummer = new HashMap<Short, Atgard>(5);
 
   private Diarienummer diarienummer;
 

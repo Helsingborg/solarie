@@ -2,7 +2,7 @@ package se.helsingborg.oppna.solarie;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.helsingborg.oppna.solarie.prevalence.domain.*;
+import se.helsingborg.oppna.solarie.domain.*;
 import se.helsingborg.oppna.solarie.prevalence.queries.GetAnvandareBySignatur;
 import se.helsingborg.oppna.solarie.prevalence.queries.GetArendeByDiarienummer;
 import se.helsingborg.oppna.solarie.prevalence.queries.GetAtgardByDiarienummerAndAtgardsnummer;
@@ -18,44 +18,116 @@ import se.helsingborg.oppna.solarie.prevalence.transactions.enhet.SetEnhetNamn;
 import se.helsingborg.oppna.solarie.util.Equals;
 
 import java.sql.*;
+import java.util.*;
 
 /**
+ * Not thread safe!
+ *
  * @author kalle
  * @since 2014-10-01 22:06
  */
-public class DiariumSyncronizer {
+public class DiariumSynchronizer {
 
-  private static final Logger log = LoggerFactory.getLogger(DiariumSyncronizer.class);
+  private static final Logger log = LoggerFactory.getLogger(DiariumSynchronizer.class);
+
+  private static Map<Diarium, DiariumSynchronizer> instances = new HashMap<>();
+
+  public static synchronized DiariumSynchronizer getInstance(Diarium diarium) {
+    DiariumSynchronizer instance = instances.get(diarium);
+    if (instance == null) {
+      instance = new DiariumSynchronizer(diarium);
+      instances.put(diarium, instance);
+    }
+    return instance;
+  }
 
   private Diarium diarium;
 
-  public DiariumSyncronizer(Diarium diarium) {
+  private DiariumSynchronizer(Diarium diarium) {
     this.diarium = diarium;
   }
 
 
+  private Set<Indexable> dirtyIndexables = new HashSet<>(2500);
+
+  private boolean syncronizing = false;
+  private Long started;
+
+  public Long getMillisecondsSinceStarted() {
+    return System.currentTimeMillis() - started;
+  }
+
+  public boolean isSyncronizing() {
+    return syncronizing;
+  }
 
   public void synchronize() throws Exception {
 
-    long started = System.currentTimeMillis();
-    long since = diarium.getSenasteSynkronisering() == null ? 0 : diarium.getSenasteSynkronisering();
-
-    // todo läs alltid data från en dag tillbaka
-    // todo problemet är att mod_dat ibland är formatterat som dag
-    // todo och då kan vi missa allt som skett senare samma dag som vi senast synkroniserade.
-
-    Connection connection = DriverManager.getConnection(diarium.getJdbcURL());
-    try {
-
-      synchronizeÄrenden(since, connection);
-      synchronizeÅtgärder(since, connection);
-      synchronizeEnheter(since, connection);
-
-    } finally {
-      connection.close();
+    synchronized (this) {
+      if (syncronizing) {
+        throw new RuntimeException("Already syncronizing.");
+      }
+      syncronizing = true;
     }
 
-    Solarie.getInstance().getPrevayler().execute(new SetDiariumSenasteSynkronisering(diarium, started));
+    try {
+
+      started = System.currentTimeMillis();
+      long since = diarium.getSenasteSynkronisering() == null ? 0 : diarium.getSenasteSynkronisering();
+
+      // todo läs alltid data från en dag tillbaka
+      // todo problemet är att mod_dat ibland är formatterat som dag
+      // todo och då kan vi missa allt som skett senare samma dag som vi senast synkroniserade.
+
+      Connection connection = DriverManager.getConnection(diarium.getJdbcURL());
+      try {
+
+        synchronizeÄrenden(since, connection);
+        synchronizeÅtgärder(since, connection);
+        synchronizeEnheter(since, connection);
+
+        IndexableVisitor<Void> dependenciesVisitor = new IndexableVisitor<Void>() {
+          @Override
+          public Void visit(Arende ärende) {
+            if (ärende.getÅtgärderByNummer() != null) {
+              for (Atgard åtgärd : ärende.getÅtgärderByNummer().values()) {
+                dirtyIndexables.add(åtgärd);
+              }
+            }
+            return null;
+          }
+
+          @Override
+          public Void visit(Atgard åtgärd) {
+            if (åtgärd.getDokument() != null) {
+              for (Dokument dokument : åtgärd.getDokument()) {
+                dirtyIndexables.add(dokument);
+              }
+            }
+            return null;
+          }
+
+          @Override
+          public Void visit(Dokument dokument) {
+            return null;
+          }
+        };
+        for (Indexable dirtyIndexable : new ArrayList<>(dirtyIndexables)) {
+          dirtyIndexable.accept(dependenciesVisitor);
+        }
+
+        Solarie.getInstance().getIndex().updateAll(dirtyIndexables);
+
+      } finally {
+        connection.close();
+      }
+
+      Solarie.getInstance().getPrevayler().execute(new SetDiariumSenasteSynkronisering(diarium, started));
+
+    } finally {
+      syncronizing = false;
+      started = null;
+    }
   }
 
   private void synchronizeEnheter(long since, Connection connection) throws Exception {
@@ -150,6 +222,7 @@ public class DiariumSyncronizer {
       ResultSet rs = ps.executeQuery();
       try {
         while (rs.next()) {
+
           Diarienummer diarienummer = diarienummerFactory(rs.getString("diarienr"));
           short åtgärdsnummer = rs.getShort("atgardsnr");
 
@@ -160,12 +233,14 @@ public class DiariumSyncronizer {
           Arende ärende = Solarie.getInstance().getPrevayler().execute(new GetArendeByDiarienummer(diarium, diarienummer));
           if (ärende == null) {
             ärende = Solarie.getInstance().getPrevayler().execute(new CreateArende(diarium, diarienummer));
+            dirtyIndexables.add(ärende);
           }
 
           Atgard åtgärd = Solarie.getInstance().getPrevayler().execute(new GetAtgardByDiarienummerAndAtgardsnummer(diarium, diarienummer, åtgärdsnummer));
           if (åtgärd == null) {
             log.info("Skapar åtgärd #" + åtgärdsnummer + " i ärende med diarienummer " + diarienummer.toString());
             åtgärd = Solarie.getInstance().getPrevayler().execute(new CreateAtgard(ärende, åtgärdsnummer));
+            dirtyIndexables.add(åtgärd);
           }
 
           // update delta
@@ -174,23 +249,26 @@ public class DiariumSyncronizer {
           String text = rs.getString("atgard_text");
           if (!Equals.equals(text, åtgärd.getText())) {
             Solarie.getInstance().getPrevayler().execute(new SetAtgardText(åtgärd, text));
+            dirtyIndexables.add(åtgärd);
           }
 
           Enhet enhet = getOrCreateEnhet(rs.getString("enhet_kod"));
           if (!Equals.equals(enhet, åtgärd.getEnhet())) {
             Solarie.getInstance().getPrevayler().execute(new SetAtgardEnhet(åtgärd, enhet));
+            dirtyIndexables.add(åtgärd);
           }
 
           Anvandare ägare = getOrCreateAnvändare(rs.getString("agare_usrsign"));
           if (!Equals.equals(ägare, åtgärd.getÄgare())) {
             Solarie.getInstance().getPrevayler().execute(new SetAtgardAgare(åtgärd, ägare));
+            dirtyIndexables.add(åtgärd);
           }
 
           Long datumRegistrerad = getTimestamp(rs, "reg_dat");
           if (!Equals.equals(åtgärd.getRegistrerad(), datumRegistrerad)) {
             Solarie.getInstance().getPrevayler().execute(new SetAtgardRegistrerad(åtgärd, datumRegistrerad));
+            dirtyIndexables.add(åtgärd);
           }
-
 
           System.currentTimeMillis();
 
@@ -255,6 +333,7 @@ public class DiariumSyncronizer {
           if (ärende == null) {
             log.info("Skapar ärende med diarienummer " + diarienummer.toString());
             ärende = Solarie.getInstance().getPrevayler().execute(new CreateArende(diarium, diarienummer));
+            dirtyIndexables.add(ärende);
           }
 
           // update delta
@@ -264,51 +343,61 @@ public class DiariumSyncronizer {
           Long datumModifierad = getTimestamp(rs, "mod_dat");
           if (!Equals.equals(ärende.getModifierad(), datumModifierad)) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeModifierad(ärende, datumModifierad));
+            dirtyIndexables.add(ärende);
           }
 
           Long datumAnkommen = getTimestamp(rs, "ankomst_dat");
           if (!Equals.equals(ärende.getAnkommen(), datumAnkommen)) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeAnkommen(ärende, datumAnkommen));
+            dirtyIndexables.add(ärende);
           }
 
           Long datumRegistrerad = getTimestamp(rs, "reg_dat");
           if (!Equals.equals(ärende.getRegistrerad(), datumRegistrerad)) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeRegistrerad(ärende, datumRegistrerad));
+            dirtyIndexables.add(ärende);
           }
 
           Long datumBeslutad = getTimestamp(rs, "beslut_dat");
           if (!Equals.equals(ärende.getBeslutad(), datumBeslutad)) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeBeslutad(ärende, datumBeslutad));
+            dirtyIndexables.add(ärende);
           }
 
           Long datumPlaneratBeslut = getTimestamp(rs, "plan_beslut_dat");
           if (!Equals.equals(ärende.getPlaneratBeslut(), datumPlaneratBeslut)) {
             Solarie.getInstance().getPrevayler().execute(new SetArendePlaneratBeslut(ärende, datumPlaneratBeslut));
+            dirtyIndexables.add(ärende);
           }
 
           Long datumAvslutad = getTimestamp(rs, "avslut_dat");
           if (!Equals.equals(ärende.getAvslutad(), datumAvslutad)) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeAvslutad(ärende, datumAvslutad));
+            dirtyIndexables.add(ärende);
           }
 
           Long datumBevakning = getTimestamp(rs, "bevak_dat");
           if (!Equals.equals(ärende.getBevakning(), datumBevakning)) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeBevakning(ärende, datumBevakning));
+            dirtyIndexables.add(ärende);
           }
 
           Long datumExspirerar = getTimestamp(rs, "exp_dat");
           if (!Equals.equals(ärende.getExspirerar(), datumExspirerar)) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeMakulerad(ärende, datumExspirerar));
+            dirtyIndexables.add(ärende);
           }
 
           Long datumBekräftad = getTimestamp(rs, "bekraft_dat");
           if (!Equals.equals(ärende.getBekräftad(), datumBekräftad)) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeMakulerad(ärende, datumBekräftad));
+            dirtyIndexables.add(ärende);
           }
 
           Long datumMakulerad = getTimestamp(rs, "makulerat_datum");
           if (!Equals.equals(ärende.getMakulerad(), datumMakulerad)) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeMakulerad(ärende, datumMakulerad));
+            dirtyIndexables.add(ärende);
           }
 
 
@@ -316,6 +405,7 @@ public class DiariumSyncronizer {
 
           if (!Equals.equals(ärende.getMening(), rs.getString("arende_mening"))) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeMening(ärende, rs.getString("arende_mening")));
+            dirtyIndexables.add(ärende);
           }
 
           // grupper och kategorier
@@ -323,6 +413,7 @@ public class DiariumSyncronizer {
           Enhet enhet = getOrCreateEnhet(rs.getString("enhet_kod"));
           if (!Equals.equals(enhet, ärende.getEnhet())) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeEnhet(ärende, enhet));
+            dirtyIndexables.add(ärende);
           }
 
 
@@ -331,21 +422,25 @@ public class DiariumSyncronizer {
           Anvandare handläggare = getOrCreateAnvändare(rs.getString("usrsign_handl"));
           if (!Equals.equals(handläggare, ärende.getHandläggare())) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeHandlaggare(ärende, handläggare));
+            dirtyIndexables.add(ärende);
           }
 
           Anvandare registrator = getOrCreateAnvändare(rs.getString("usrsign_reg"));
           if (!Equals.equals(registrator, ärende.getRegistrator())) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeRegistrator(ärende, registrator));
+            dirtyIndexables.add(ärende);
           }
 
           Anvandare senasteModifierare = getOrCreateAnvändare(rs.getString("usrsign_reg"));
           if (!Equals.equals(senasteModifierare, ärende.getSenasteModifierare())) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeSenasteModifierare(ärende, senasteModifierare));
+            dirtyIndexables.add(ärende);
           }
 
           Anvandare ägare = getOrCreateAnvändare(rs.getString("agare_usrsign"));
           if (!Equals.equals(ägare, ärende.getÄgare())) {
             Solarie.getInstance().getPrevayler().execute(new SetArendeAgare(ärende, ägare));
+            dirtyIndexables.add(ärende);
           }
 
 

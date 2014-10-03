@@ -2,8 +2,8 @@ package se.helsingborg.oppna.solarie.prevalence.transactions.diarium;
 
 import org.prevayler.TransactionWithQuery;
 import se.helsingborg.oppna.solarie.Solarie;
-import se.helsingborg.oppna.solarie.prevalence.domain.Diarium;
-import se.helsingborg.oppna.solarie.prevalence.domain.Root;
+import se.helsingborg.oppna.solarie.domain.Diarium;
+import se.helsingborg.oppna.solarie.domain.Root;
 import se.helsingborg.oppna.solarie.prevalence.transactions.IdentityFactory;
 
 import java.util.Date;

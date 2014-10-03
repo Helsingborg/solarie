@@ -3,12 +3,21 @@
 <head>
   <title>Solarie - Öppna Helsingborg</title>
   <meta charset="UTF-8"/>
+
+  <script src="lib/jquery-2.1.1.min.js" type="text/javascript"></script>
+  <script src="solarie-0.0.1-src.js" type="text/javascript"></script>
   <script src="index.js" type="text/javascript"></script>
 
 </head>
 <body onload="initialize();">
 
 <input id="query" type="text"/> <button id="search">Sök</button>
+
+<div><span id="searchResults_length"></span> träffar på <span id="searchResults_timers_total"></span> sekunder</div>
+
+<div id="search_results">
+
+</div>
 
 </body>
 </html>

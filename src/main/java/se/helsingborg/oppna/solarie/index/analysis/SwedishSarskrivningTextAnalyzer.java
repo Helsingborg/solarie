@@ -14,6 +14,7 @@ import java.io.Reader;
  * Joins 2-3 tokens separated by dash or whitespace to a single token.
  *
  * Damm sugare -> dammsugare
+ * Damm sugar försäljare -> dammsugarförsäljare
  *
  * @author kalle
  * @since 2014-09-17 01:58
@@ -27,7 +28,9 @@ public class SwedishSarskrivningTextAnalyzer extends Analyzer {
 
     final Tokenizer source = new SwedishSarskrivningTextTokenizer(matchVersion, reader);
     TokenStream result = new StandardFilter(matchVersion, source);
-    result = new ShingleFilter(result, 2, 3);
+    ShingleFilter shingleFilter = new ShingleFilter(result, 2, 3);
+    shingleFilter.setTokenSeparator("");
+    result = shingleFilter;
     result = new LowerCaseFilter(matchVersion, result);
     return new TokenStreamComponents(source, result);
 

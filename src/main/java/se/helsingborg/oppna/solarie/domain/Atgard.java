@@ -1,16 +1,24 @@
-package se.helsingborg.oppna.solarie.prevalence.domain;
+package se.helsingborg.oppna.solarie.domain;
 
-import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author kalle
  * @since 2014-10-01 22:48
  */
-public class Atgard implements Identitfiable {
+public class Atgard implements Identitfiable, Indexable {
 
   private static final long serialVersionUID = 1l;
 
+  @Override
+  public <R> R accept(IndexableVisitor<R> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
+  public Diarium getDiarium() {
+    return getÄrende().getDiarium();
+  }
 
   /** Internal solarie identity */
   private Long identity;

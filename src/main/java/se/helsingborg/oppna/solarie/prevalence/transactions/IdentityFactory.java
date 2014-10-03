@@ -1,7 +1,7 @@
 package se.helsingborg.oppna.solarie.prevalence.transactions;
 
 import org.prevayler.TransactionWithQuery;
-import se.helsingborg.oppna.solarie.prevalence.domain.Root;
+import se.helsingborg.oppna.solarie.domain.Root;
 
 import java.util.Date;
 

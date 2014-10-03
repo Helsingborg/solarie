@@ -1,10 +1,9 @@
 package se.helsingborg.oppna.solarie.prevalence.transactions.arende;
 
 import org.prevayler.Transaction;
-import se.helsingborg.oppna.solarie.prevalence.domain.Anvandare;
-import se.helsingborg.oppna.solarie.prevalence.domain.Arende;
-import se.helsingborg.oppna.solarie.prevalence.domain.Enhet;
-import se.helsingborg.oppna.solarie.prevalence.domain.Root;
+import se.helsingborg.oppna.solarie.domain.Arende;
+import se.helsingborg.oppna.solarie.domain.Enhet;
+import se.helsingborg.oppna.solarie.domain.Root;
 
 import java.util.Date;
 

@@ -1,10 +1,10 @@
 package se.helsingborg.oppna.solarie.prevalence.queries;
 
 import org.prevayler.Query;
-import se.helsingborg.oppna.solarie.prevalence.domain.Atgard;
-import se.helsingborg.oppna.solarie.prevalence.domain.Diarienummer;
-import se.helsingborg.oppna.solarie.prevalence.domain.Diarium;
-import se.helsingborg.oppna.solarie.prevalence.domain.Root;
+import se.helsingborg.oppna.solarie.domain.Atgard;
+import se.helsingborg.oppna.solarie.domain.Diarienummer;
+import se.helsingborg.oppna.solarie.domain.Diarium;
+import se.helsingborg.oppna.solarie.domain.Root;
 
 import java.util.Date;
 

@@ -1,6 +1,5 @@
-package se.helsingborg.oppna.solarie.prevalence.domain;
+package se.helsingborg.oppna.solarie.domain;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
