@@ -2,3 +2,4 @@
 *.iml
 target
 data
+src/main/resources/diarier.fyffe.local.json
