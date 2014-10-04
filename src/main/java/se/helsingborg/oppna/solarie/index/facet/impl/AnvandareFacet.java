@@ -25,23 +25,30 @@ public class AnvandareFacet extends Facet {
   }
 
   private class GatherAnvandare implements IndexableVisitor<Void> {
-    private Set<Anvandare> anvandarna = new HashSet<>();
+    private Set<Anvandare> användarna = new HashSet<>();
 
     @Override
     public Void visit(Arende ärende) {
-      anvandarna.add(ärende.getHandläggare());
-      anvandarna.add(ärende.getRegistrator());
-      anvandarna.add(ärende.getSenasteModifierare());
-      anvandarna.add(ärende.getÄgare());
+      if (ärende.getHandläggare() != null) {
+        användarna.add(ärende.getHandläggare());
+      }
+      if (ärende.getRegistrator() != null) {
+        användarna.add(ärende.getRegistrator());
+      }
+      if (ärende.getSenasteModifierare() != null) {
+        användarna.add(ärende.getSenasteModifierare());
+      }
+      if (ärende.getÄgare() != null) {
+        användarna.add(ärende.getÄgare());
+      }
       return null;
     }
 
     @Override
     public Void visit(Atgard åtgärd) {
-//            anvandare.add(åtgärd.getHandläggare());
-//            anvandare.add(åtgärd.getRegistrator());
-//            anvandare.add(åtgärd.getSenasteModifierare());
-      anvandarna.add(åtgärd.getÄgare());
+      if (åtgärd.getÄgare() != null) {
+        användarna.add(åtgärd.getÄgare());
+      }
       return null;
     }
 
@@ -50,39 +57,30 @@ public class AnvandareFacet extends Facet {
       return null;
     }
 
-    private Set<Anvandare> getAnvandarna() {
-      return anvandarna;
+    private Set<Anvandare> getAnvändarna() {
+      return användarna;
     }
   }
 
   private class MatchesVisitor implements IndexableVisitor<Boolean> {
 
-    private Set<Anvandare> anvandarna = new HashSet<>();
+    private Anvandare användare;
 
-    private MatchesVisitor(GatherAnvandare gatherAnvandare) {
-      this(gatherAnvandare.getAnvandarna());
-    }
-
-    private MatchesVisitor(Set<Anvandare> anvandarna) {
-      this.anvandarna = anvandarna;
+    private MatchesVisitor(Anvandare användare) {
+      this.användare = användare;
     }
 
     @Override
     public Boolean visit(Arende ärende) {
-      return anvandarna.contains(ärende.getHandläggare())
-          || anvandarna.contains(ärende.getRegistrator())
-          || anvandarna.contains(ärende.getSenasteModifierare())
-          || anvandarna.contains(ärende.getÄgare());
+      return användare.equals(ärende.getHandläggare())
+          || användare.equals(ärende.getRegistrator())
+          || användare.equals(ärende.getSenasteModifierare())
+          || användare.equals(ärende.getÄgare());
     }
 
     @Override
     public Boolean visit(Atgard åtgärd) {
-//      return anvandarna.contains(åtgärd.getHandläggare())
-//          || anvandarna.contains(åtgärd.getRegistrator())
-//          || anvandarna.contains(åtgärd.getSenasteModifierare())
-//          || anvandarna.contains(åtgärd.getÄgare());
-
-      return anvandarna.contains(åtgärd.getÄgare());
+      return användare.equals(åtgärd.getÄgare());
     }
 
     @Override
@@ -98,10 +96,16 @@ public class AnvandareFacet extends Facet {
     for (SearchResult searchResult : searchResults) {
       searchResult.getIndexable().accept(gatherAnvandare);
     }
-    final MatchesVisitor matcher = new MatchesVisitor(gatherAnvandare.getAnvandarna());
-    List<FacetValue> values = new ArrayList<>(gatherAnvandare.getAnvandarna().size());
-    for (Anvandare anvandare : gatherAnvandare.getAnvandarna()) {
-      values.add(new FacetValue(searchResults, anvandare.getNamn()) {
+
+
+
+    List<FacetValue> values = new ArrayList<>(gatherAnvandare.getAnvändarna().size());
+    for (final Anvandare användare : gatherAnvandare.getAnvändarna()) {
+
+      final MatchesVisitor matcher = new MatchesVisitor(användare);
+
+      values.add(new FacetValue(searchResults, användare.getNamn()) {
+
         @Override
         public Facet getFacet() {
           return AnvandareFacet.this;

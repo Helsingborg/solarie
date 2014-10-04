@@ -2,9 +2,7 @@ package se.helsingborg.oppna.solarie.index.facet;
 
 import se.helsingborg.oppna.solarie.index.SearchResult;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author kalle
@@ -28,6 +26,12 @@ public abstract class Facet {
     for (FacetValue value : values) {
       matches.addAll(value.getMatches());
     }
+    Collections.sort(values, new Comparator<FacetValue>() {
+      @Override
+      public int compare(FacetValue o1, FacetValue o2) {
+        return  o2.getMatches().size() - o1.getMatches().size();
+      }
+    });
   }
 
   public List<FacetValue> getValues() {

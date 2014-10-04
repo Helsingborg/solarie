@@ -1,7 +1,6 @@
 package se.helsingborg.oppna.solarie.index;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
@@ -135,7 +134,7 @@ public class SolarieIndex {
   }
 
   public void update(Indexable indexable) throws Exception {
-    if(log.isDebugEnabled()) {
+    if (log.isDebugEnabled()) {
       log.debug("Updating " + indexable.getClass().getSimpleName() + " with id " + indexable.getIdentity());
     }
     indexWriter.updateDocument(new Term(SolarieFields.identity_indexed, String.valueOf(indexable.getIdentity())), documentFactory(indexable));
@@ -157,17 +156,23 @@ public class SolarieIndex {
 
       @Override
       public Void visit(Arende ärende) {
-        document.add(new TextField(SolarieFields.ärende_mening, ärende.getMening(), Field.Store.NO));
-        addTextFields(ärende.getMening());
+        if (ärende.getMening() != null) {
+          document.add(new TextField(SolarieFields.ärende_mening, ärende.getMening(), Field.Store.NO));
+          addTextFields(ärende.getMening());
+        }
 
         return null;
       }
 
       @Override
       public Void visit(Atgard åtgärd) {
-        document.add(new TextField(SolarieFields.åtgärd_text, åtgärd.getText(), Field.Store.NO));
-        addTextFields(åtgärd.getText());
-        addTextFields(åtgärd.getÄrende().getMening());
+        if (åtgärd.getText() != null) {
+          document.add(new TextField(SolarieFields.åtgärd_text, åtgärd.getText(), Field.Store.NO));
+          addTextFields(åtgärd.getText());
+        }
+        if (åtgärd.getÄrende().getMening() != null) {
+          addTextFields(åtgärd.getÄrende().getMening());
+        }
 
         return null;
       }
@@ -234,6 +239,7 @@ public class SolarieIndex {
         @Override
         public void setNextReader(AtomicReaderContext context) throws IOException {
           this.context = context;
+          identityDocValues = null;
         }
 
         @Override

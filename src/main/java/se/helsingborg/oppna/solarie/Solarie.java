@@ -54,7 +54,7 @@ public class Solarie {
     }
 
     // prevayler
-
+    log.info("Starting prevayler... This can take a while...");
     File prevaylerPath = new File(dataPath, "prevayler");
     if (!prevaylerPath.exists() && !prevaylerPath.mkdirs()) {
       throw new IOException("Could not mkdirs prevalence data path " + prevaylerPath.getAbsolutePath());
@@ -95,13 +95,23 @@ public class Solarie {
         createDiarium.setIdentity(prevayler.execute(new IdentityFactory()));
         createDiarium.setNamn(diariumJSON.getString("namn"));
         createDiarium.setJdbcURL(diariumJSON.getString("jdbcURL"));
-        Diarium diarium = prevayler.execute(createDiarium);
+        final Diarium diarium = prevayler.execute(createDiarium);
         log.info("Created diarium with identity " + diarium.getIdentity() + " from " + diariumJSON.toString());
 
+        Thread thread = new Thread(new Runnable() {
+          @Override
+          public void run() {
+            try {
+              DiariumSynchronizer.getInstance(diarium).synchronize();
+            } catch (Exception e) {
+              log.error("Exception during initial synchronization of diarium " + diarium.getNamn(), e);
+            }
+          }
+        });
+        thread.setDaemon(true);
+        thread.start();
       }
 
-    } else {
-      doReconstructIndex = true;
     }
 
     if (doReconstructIndex) {

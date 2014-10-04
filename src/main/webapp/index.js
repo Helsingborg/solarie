@@ -16,28 +16,41 @@ function initialize() {
 
 
   searchButton.onclick = function () {
-     search();
+    search();
   };
 
-  function search(){
-    S_search({
-          sortOrder: 'score',
-          explain: false,
-          offset: 0,
-          length: 10,
-          query: {
-            type: 'boolean analyzed text should',
-            field: 'text',
-            value: $('#query').val()
-          }
-        },
-        function success(response){
+  function search() {
+
+    var request = {
+      sortOrder: 'score',
+      explain: false,
+      offset: 0,
+      length: 10,
+    }
+
+    var textQuery = $('#query').val().trim();
+    if ("" === textQuery) {
+      request.query = {
+        type: 'match all documents'
+      };
+    } else {
+      request.query = {
+        type: 'boolean analyzed text should',
+        field: 'text',
+        value: textQuery
+      };
+    }
+
+
+    S_search(
+        request,
+        function success(response) {
 
           $('#search_results').html("");
 
           $('#searchResults_length').text(response.length);
 
-          var sekunder = (response.timers.total/1000).toString();
+          var sekunder = (response.timers.total / 1000).toString();
           sekunder = sekunder.substring(0, Math.min(sekunder.length, 5));
           $('#searchResults_timers_total').text(sekunder);
 

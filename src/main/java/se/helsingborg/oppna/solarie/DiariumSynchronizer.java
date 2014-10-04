@@ -145,10 +145,6 @@ public class DiariumSynchronizer {
         .append(convertModifieringsDatumSQLFactory())
         .append(" AS mod_dat")
 
-        .append(",namn")
-//        .append(",enhet_namn")
-//        .append(",aktiv")
-
         .append(" FROM anvandare ")
 
         .append(" WHERE ")

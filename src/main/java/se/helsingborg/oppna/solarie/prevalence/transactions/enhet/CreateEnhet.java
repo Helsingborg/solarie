@@ -58,7 +58,7 @@ public class CreateEnhet implements TransactionWithQuery<Root, Enhet> {
     if (kod == null) {
       throw new IllegalArgumentException("Kod is not set!");
     }
-    if (diarium.getAnvändareBySignatur().containsKey(kod)) {
+    if (diarium.getEnhetByKod().containsKey(kod)) {
       throw new IllegalArgumentException("It already exists an enhet with this kod! " + kod);
     }
 
@@ -66,6 +66,7 @@ public class CreateEnhet implements TransactionWithQuery<Root, Enhet> {
 
     enhet.setKod(kod);
     enhet.setIdentity(identity);
+    enhet.setDiarium(diarium);
 
     root.getIdentifiables().put(identity, enhet);
     root.getEnhetByIdentity().put(identity, enhet);
