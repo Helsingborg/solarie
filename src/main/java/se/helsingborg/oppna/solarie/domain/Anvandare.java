@@ -17,7 +17,7 @@ public class Anvandare implements Identitfiable, DiariumBound {
 
   private String signatur;
   private String namn;
-  private String enhet;
+  private Enhet enhet;
   private String profilkod;
   private String epostadress;
   private boolean aktiv;
@@ -112,11 +112,11 @@ public class Anvandare implements Identitfiable, DiariumBound {
     this.namn = namn;
   }
 
-  public String getEnhet() {
+  public Enhet getEnhet() {
     return enhet;
   }
 
-  public void setEnhet(String enhet) {
+  public void setEnhet(Enhet enhet) {
     this.enhet = enhet;
   }
 

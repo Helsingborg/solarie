@@ -27,6 +27,8 @@ public class Arende implements Identitfiable, DiariumBound, Indexable {
 
   private Enhet enhet;
 
+  // användare av olika slag
+
   private Anvandare registrator;
   private Anvandare handläggare;
   private Anvandare senasteModifierare;

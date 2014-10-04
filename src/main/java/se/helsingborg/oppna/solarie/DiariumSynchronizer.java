@@ -8,6 +8,9 @@ import se.helsingborg.oppna.solarie.prevalence.queries.GetArendeByDiarienummer;
 import se.helsingborg.oppna.solarie.prevalence.queries.GetAtgardByDiarienummerAndAtgardsnummer;
 import se.helsingborg.oppna.solarie.prevalence.queries.GetEnhetByKod;
 import se.helsingborg.oppna.solarie.prevalence.transactions.anvandare.CreateAnvandare;
+import se.helsingborg.oppna.solarie.prevalence.transactions.anvandare.SetAnvandareEnhet;
+import se.helsingborg.oppna.solarie.prevalence.transactions.anvandare.SetAnvandareModifierad;
+import se.helsingborg.oppna.solarie.prevalence.transactions.anvandare.SetAnvandareNamn;
 import se.helsingborg.oppna.solarie.prevalence.transactions.arende.*;
 import se.helsingborg.oppna.solarie.prevalence.transactions.atgard.*;
 import se.helsingborg.oppna.solarie.prevalence.transactions.diarium.SetDiariumSenasteSynkronisering;
@@ -82,9 +85,10 @@ public class DiariumSynchronizer {
       Connection connection = DriverManager.getConnection(diarium.getJdbcURL());
       try {
 
+        synchronizeEnheter(since, connection);
+        synchronizeAnvändare(since, connection);
         synchronizeÄrenden(since, connection);
         synchronizeÅtgärder(since, connection);
-        synchronizeEnheter(since, connection);
 
         IndexableVisitor<Void> dependenciesVisitor = new IndexableVisitor<Void>() {
           @Override
@@ -127,6 +131,67 @@ public class DiariumSynchronizer {
     } finally {
       syncronizing = false;
       started = null;
+    }
+  }
+
+  private void synchronizeAnvändare(long since, Connection connection) throws Exception {
+    StringBuilder sql = new StringBuilder(4096)
+        .append("SELECT ")
+        .append(" usr_namn")
+        .append(",usrsign")
+        .append(",usr_enhet")
+
+        .append(",")
+        .append(convertModifieringsDatumSQLFactory())
+        .append(" AS mod_dat")
+
+        .append(",namn")
+//        .append(",enhet_namn")
+//        .append(",aktiv")
+
+        .append(" FROM anvandare ")
+
+        .append(" WHERE ")
+
+        .append(convertModifieringsDatumSQLFactory())
+        .append(" >= ?");
+    PreparedStatement ps = connection.prepareStatement(sql.toString());
+    ps.setLong(1, since);
+
+    try {
+      ResultSet rs = ps.executeQuery();
+      try {
+
+        while (rs.next()) {
+
+          String signatur = rs.getString("usrsign");
+
+          log.debug("Läser in användare med signatur " + signatur);
+
+          Anvandare anvandare= getOrCreateAnvändare(signatur);
+
+          String namn = rs.getString("usr_namn");
+          if (!Equals.equals(namn, anvandare.getNamn())) {
+            Solarie.getInstance().getPrevayler().execute(new SetAnvandareNamn(anvandare, namn));
+          }
+
+          Enhet enhet = getOrCreateEnhet(rs.getString("usr_enhet"));
+          if (!Equals.equals(enhet, anvandare.getEnhet())) {
+            Solarie.getInstance().getPrevayler().execute(new SetAnvandareEnhet(anvandare, enhet));
+          }
+
+          Long modifierad = getTimestamp(rs, "mod_dat");
+          if (!Equals.equals(enhet.getModifierad(), modifierad)) {
+            Solarie.getInstance().getPrevayler().execute(new SetAnvandareModifierad(anvandare, modifierad));
+          }
+
+        }
+
+      } finally {
+        rs.close();
+      }
+    } finally {
+      ps.close();
     }
   }
 

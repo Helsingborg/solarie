@@ -27,21 +27,20 @@ public class DiariumSynchronizerServlet extends JSONPostService {
   }
 
   @Override
-  public void writeDocumentationResponse(PrintWriter writer) throws IOException {
-    writer.println("{ ");
-    writer.println("  \"success\": boolean");
-    writer.println("  \"error\": string");
-    writer.println("  \"timers\": { ");
-    writer.println("    \"read\": milliseconds");
-    writer.println("    \"index\": milliseconds");
-    writer.println("  } ");
+  public void writeDocumentationRequest(PrintWriter writer) throws IOException {
+    writer.println("{");
+    writer.println("  \"identity\": long");
     writer.println("}");
   }
 
   @Override
-  public void writeDocumentationRequest(PrintWriter writer) throws IOException {
-    writer.println("{");
-    writer.println("  \"identity\": long");
+  public void writeDocumentationResponse(PrintWriter writer) throws IOException {
+    writer.println("{ ");
+    writer.println("  \"success\": false if failed");
+    writer.println("  \"timers\": { ");
+    writer.println("    \"read\": milliseconds");
+    writer.println("    \"index\": milliseconds");
+    writer.println("  } ");
     writer.println("}");
   }
 

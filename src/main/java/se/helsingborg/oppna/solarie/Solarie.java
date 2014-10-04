@@ -67,8 +67,13 @@ public class Solarie {
 
     // index
 
+    boolean doReconstructIndex = false;
     index = new SolarieIndex();
-    index.open(new File(dataPath, "index"));
+    File indexPath = new File(dataPath, "index");
+    if (!indexPath.exists()) {
+      doReconstructIndex = true;
+    }
+    index.open(indexPath);
 
 
     // initialize from resource if no diarier in root
@@ -96,6 +101,10 @@ public class Solarie {
       }
 
     } else {
+      doReconstructIndex = true;
+    }
+
+    if (doReconstructIndex) {
       index.reconstruct();
     }
 

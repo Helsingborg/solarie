@@ -2,6 +2,7 @@ package se.helsingborg.oppna.solarie.domain;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author kalle
@@ -21,6 +22,7 @@ public class Enhet implements Identitfiable, DiariumBound {
   private String namn;
   private boolean aktiv;
   private Anvandare ansvarig;
+  private Set<Anvandare> användare;
 
   private List<Arende> ärenden = new ArrayList<>(1000);
   private List<Atgard> åtgärder = new ArrayList<>(1000);
@@ -102,5 +104,13 @@ public class Enhet implements Identitfiable, DiariumBound {
 
   public void setÅtgärder(List<Atgard> åtgärder) {
     this.åtgärder = åtgärder;
+  }
+
+  public Set<Anvandare> getAnvändare() {
+    return användare;
+  }
+
+  public void setAnvändare(Set<Anvandare> användare) {
+    this.användare = användare;
   }
 }
