@@ -21,7 +21,7 @@ public class JSONQueryUnmarshaller {
   public Query parseJsonQuery(JSONObject jsonQuery) throws JSONException {
 
     String type = jsonQuery.getString("type");
-    if ("boolean query".equalsIgnoreCase(type)) {
+    if ("boolean".equalsIgnoreCase(type)) {
 
       BooleanQuery booleanQuery = new BooleanQuery();
 

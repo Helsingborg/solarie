@@ -1,0 +1,55 @@
+html, body, div, span, textarea, button, input, table, tr, td {
+  font-family: arial, helvetica, sans-serif;
+  font-size: 13px
+}
+
+input, button {
+  font-size: 20px;
+}
+
+html, body {
+  margin: 0px;
+  padding: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+#query {
+  width: 12em;
+}
+
+.link {
+  text-decoration: underline;
+  color: #0645AD;
+}
+
+.visited_link {
+  text-decoration: underline;
+  color: #0B0080;
+}
+
+.facet_name {
+
+}
+
+.active_facet {
+
+}
+
+.search_result {
+  padding-bottom: 2em;
+}
+
+.search_result_diarienummer {
+  padding-right: 2em;
+  font-weight: bold;
+}
+.search_result_title {
+  text-decoration: underline;
+  font-size: large;
+}
+.search_result_type {
+  padding-right: 2em;
+  text-decoration: underline;
+}
+

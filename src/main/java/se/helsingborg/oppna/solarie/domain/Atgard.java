@@ -15,11 +15,6 @@ public class Atgard implements Identitfiable, Indexable {
     return visitor.visit(this);
   }
 
-  @Override
-  public Diarium getDiarium() {
-    return getÄrende().getDiarium();
-  }
-
   /** Internal solarie identity */
   private Long identity;
 

@@ -2,7 +2,9 @@ package se.helsingborg.oppna.solarie.prevalence.transactions.atgard;
 
 import org.prevayler.TransactionWithQuery;
 import se.helsingborg.oppna.solarie.Solarie;
-import se.helsingborg.oppna.solarie.domain.*;
+import se.helsingborg.oppna.solarie.domain.Arende;
+import se.helsingborg.oppna.solarie.domain.Atgard;
+import se.helsingborg.oppna.solarie.domain.Root;
 import se.helsingborg.oppna.solarie.prevalence.transactions.IdentityFactory;
 
 import java.util.Date;

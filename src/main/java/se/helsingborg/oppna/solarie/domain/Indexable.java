@@ -8,7 +8,6 @@ public interface Indexable extends Identitfiable {
 
   public abstract <R> R accept(IndexableVisitor<R> visitor);
 
-  public abstract Diarium getDiarium();
 
 
 }

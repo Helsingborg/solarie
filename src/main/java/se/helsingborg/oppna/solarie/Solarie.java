@@ -54,7 +54,7 @@ public class Solarie {
     }
 
     // prevayler
-    log.info("Starting prevayler... This can take a while...");
+    log.info("Starting prevayler… This can take a while.");
     File prevaylerPath = new File(dataPath, "prevayler");
     if (!prevaylerPath.exists() && !prevaylerPath.mkdirs()) {
       throw new IOException("Could not mkdirs prevalence data path " + prevaylerPath.getAbsolutePath());
@@ -64,6 +64,8 @@ public class Solarie {
     prevaylerFactory.configurePrevalentSystem(new Root());
     prevaylerFactory.configurePrevalenceDirectory(prevaylerPath.getAbsolutePath());
     prevayler = prevaylerFactory.create();
+    log.info("Prevayler has started!");
+
 
     // index
 
@@ -79,7 +81,7 @@ public class Solarie {
     // initialize from resource if no diarier in root
     if (prevayler.prevalentSystem().getDiariumByIdentity().isEmpty()) {
 
-      log.info("Creating initial diarier from default JSON.");
+      log.info("Creating initial diarier from default JSON…");
 
       JSONArray diarierJSON;
       String localJSONResource = "/diarier." + InetAddress.getLocalHost().getHostName() + ".json";
@@ -119,7 +121,11 @@ public class Solarie {
     }
 
 
+    log.info("Solarie has been started!");
+
   }
+
+
 
   public File getDataPath() {
     return dataPath;
@@ -130,8 +136,10 @@ public class Solarie {
   }
 
   public void close() throws Exception {
+    log.info("Solarie stängs av…");
     index.close();
     prevayler.close();
+    log.info("Solarie har nu stängts av!");
   }
 
   public Prevayler<Root> getPrevayler() {

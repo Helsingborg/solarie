@@ -1,0 +1,4 @@
+Saker man kan tänka sig vilja ha:
+
+* Gruppera svar med samma diarienummer
+* Håll koll på hur mycket händelser det varit i ett ärende över tid. De som förändras mycket just nu kan flaggas "trendande"

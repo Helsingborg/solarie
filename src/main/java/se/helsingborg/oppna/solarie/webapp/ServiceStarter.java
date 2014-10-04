@@ -14,6 +14,7 @@ public class ServiceStarter implements ServletContextListener {
   @Override
   public void contextInitialized(ServletContextEvent servletContextEvent) {
     try {
+
       Solarie.getInstance().open();
     } catch (Exception e) {
       throw new RuntimeException(e);

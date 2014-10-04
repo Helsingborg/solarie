@@ -13,9 +13,11 @@ public class Main {
     Solarie.getInstance().open();
     try {
 
-      for (Diarium diarium : Solarie.getInstance().getPrevayler().prevalentSystem().getDiariumByIdentity().values()) {
-        DiariumSynchronizer.getInstance(diarium).synchronize();
-        System.currentTimeMillis();
+      boolean running = true;
+      while(running) {
+
+        Thread.sleep(10000);
+
       }
 
 

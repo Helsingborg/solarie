@@ -11,6 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import se.helsingborg.oppna.solarie.Solarie;
 import se.helsingborg.oppna.solarie.domain.*;
+import se.helsingborg.oppna.solarie.index.facet.FacetDefinition;
+import se.helsingborg.oppna.solarie.index.facet.impl.AnvandareFacet;
+import se.helsingborg.oppna.solarie.index.facet.impl.DiarierFacet;
+import se.helsingborg.oppna.solarie.index.facet.impl.EnheterFacet;
+import se.helsingborg.oppna.solarie.index.visitors.GetDiarienummer;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +35,13 @@ public class SolarieIndex {
   private SearcherManager searcherManager;
   private Analyzer analyzer = SolarieAnalyzerFactory.factory();
 
+  private Set<FacetDefinition> facets = new HashSet<>();
+
+  public SolarieIndex() {
+    facets.add(new DiarierFacet());
+    facets.add(new EnheterFacet());
+    facets.add(new AnvandareFacet());
+  }
 
   public void open(File path) throws Exception {
 
@@ -81,16 +93,16 @@ public class SolarieIndex {
 
   public void commit() throws Exception {
     if (indexWriter.hasUncommittedChanges()) {
-      log.info("Committing index...");
+      log.info("Committing index…");
       indexWriter.commit();
       log.info("Committed!");
       searcherManager.maybeRefresh();
     }
   }
 
-  public void reconstruct(int numberOfQueueUpdaterThreads) throws Exception {
+  public synchronized void reconstruct(int numberOfQueueUpdaterThreads) throws Exception {
 
-    log.info("Reconstructing index using " + numberOfQueueUpdaterThreads + " threads.");
+    log.info("Reconstructing index… Using " + numberOfQueueUpdaterThreads + " threads.");
 
     final ConcurrentLinkedQueue<Indexable> queue = new ConcurrentLinkedQueue<>();
     queue.addAll(Solarie.getInstance().getPrevayler().prevalentSystem().getÄrendeByIdentity().values());
@@ -112,6 +124,9 @@ public class SolarieIndex {
           }
         }
       });
+      threads[i].setDaemon(true);
+      threads[i].setName("SolarieIndex.reconstruct");
+
       threads[i].start();
     }
     for (Thread thread : threads) {
@@ -126,11 +141,38 @@ public class SolarieIndex {
   }
 
   public void updateAll(Collection<Indexable> indexables) throws Exception {
-    // todo threads? does it make sense? probably only when creating the index the first time.
-    // todo set up some timers and then compare to an executor service on concurrent queue
-    for (Indexable indexable : indexables) {
-      update(indexable);
+    updateAll(indexables, 10);
+  }
+
+  public void updateAll(Collection<Indexable> indexables, int numberOfQueueUpdaterThreads) throws Exception {
+
+    final ConcurrentLinkedQueue<Indexable> queue = new ConcurrentLinkedQueue<>(indexables);
+
+    Thread[] threads = new Thread[numberOfQueueUpdaterThreads];
+    for (int i = 0; i < threads.length; i++) {
+      threads[i] = new Thread(new Runnable() {
+        @Override
+        public void run() {
+          Indexable indexable;
+          while ((indexable = queue.poll()) != null) {
+            try {
+              update(indexable);
+            } catch (Exception e) {
+              log.error("Exception while indexing " + indexable, e);
+            }
+          }
+        }
+      });
+      threads[i].setDaemon(true);
+      threads[i].setName("SolarieIndex.updateAll");
+      threads[i].start();
+
     }
+    for (Thread thread : threads) {
+      thread.join();
+    }
+
+
   }
 
   public void update(Indexable indexable) throws Exception {
@@ -140,19 +182,30 @@ public class SolarieIndex {
     indexWriter.updateDocument(new Term(SolarieFields.identity_indexed, String.valueOf(indexable.getIdentity())), documentFactory(indexable));
   }
 
+
   public Document documentFactory(Indexable indexable) {
     final Document document = new Document();
     document.add(new NumericDocValuesField(SolarieFields.identity_doc_value, indexable.getIdentity()));
     document.add(new LongField(SolarieFields.identity_indexed, indexable.getIdentity(), StoredField.Store.NO));
-    document.add(new LongField(SolarieFields.diarium_identity, indexable.getDiarium().getIdentity(), StoredField.Store.NO));
+
+    for (FacetDefinition facet : facets) {
+      facet.addFields(document, indexable);
+    }
 
     indexable.accept(new IndexableVisitor<Void>() {
 
       private void addDiarienummer(Diarienummer diarienummer) {
-        document.add(new StringField(SolarieFields.diarienummer, diarienummer.getLöpnummer(), Field.Store.NO));
-        document.add(new StringField(SolarieFields.diarienummer, diarienummer.getÅr(), Field.Store.NO));
-        document.add(new StringField(SolarieFields.diarienummer, diarienummer.toString(), Field.Store.NO));
+        document.add(new StringField(SolarieFields.text, diarienummer.getLöpnummer(), Field.Store.NO));
+        document.add(new StringField(SolarieFields.text, diarienummer.getÅr(), Field.Store.NO));
+        document.add(new StringField(SolarieFields.text, diarienummer.toString(), Field.Store.NO));
       }
+
+      private void addTextFields(String text) {
+        document.add(new TextField(SolarieFields.text, text, Field.Store.NO));
+        document.add(new TextField(SolarieFields.text_singularform, text, Field.Store.NO));
+        document.add(new TextField(SolarieFields.text_särskivning, text, Field.Store.NO));
+      }
+
 
       @Override
       public Void visit(Arende ärende) {
@@ -160,12 +213,13 @@ public class SolarieIndex {
           document.add(new TextField(SolarieFields.ärende_mening, ärende.getMening(), Field.Store.NO));
           addTextFields(ärende.getMening());
         }
-
+        addDiarienummer(ärende.accept(GetDiarienummer.getInstance()));
         return null;
       }
 
       @Override
       public Void visit(Atgard åtgärd) {
+        addDiarienummer(åtgärd.getÄrende().getDiarienummer());
         if (åtgärd.getText() != null) {
           document.add(new TextField(SolarieFields.åtgärd_text, åtgärd.getText(), Field.Store.NO));
           addTextFields(åtgärd.getText());
@@ -173,18 +227,14 @@ public class SolarieIndex {
         if (åtgärd.getÄrende().getMening() != null) {
           addTextFields(åtgärd.getÄrende().getMening());
         }
+        addDiarienummer(åtgärd.accept(GetDiarienummer.getInstance()));
 
         return null;
       }
 
-      private void addTextFields(String text) {
-        document.add(new TextField(SolarieFields.text, text, Field.Store.NO));
-        document.add(new TextField(SolarieFields.text_singular, text, Field.Store.NO));
-        document.add(new TextField(SolarieFields.text_särskivning, text, Field.Store.NO));
-      }
-
       @Override
       public Void visit(Dokument dokument) {
+        addDiarienummer(dokument.accept(GetDiarienummer.getInstance()));
         return null;
       }
     });
@@ -263,5 +313,9 @@ public class SolarieIndex {
 
   public SearcherManager getSearcherManager() {
     return searcherManager;
+  }
+
+  public Set<FacetDefinition> getFacets() {
+    return facets;
   }
 }

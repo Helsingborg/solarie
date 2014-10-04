@@ -5,17 +5,16 @@ import org.apache.lucene.search.Query;
 import org.json.JSONArray;
 import org.json.JSONException;
 import se.helsingborg.oppna.solarie.Solarie;
-import se.helsingborg.oppna.solarie.domain.Arende;
-import se.helsingborg.oppna.solarie.domain.Atgard;
-import se.helsingborg.oppna.solarie.domain.Dokument;
-import se.helsingborg.oppna.solarie.domain.IndexableVisitor;
+import se.helsingborg.oppna.solarie.domain.*;
 import se.helsingborg.oppna.solarie.index.JSONQueryUnmarshaller;
 import se.helsingborg.oppna.solarie.index.SearchResult;
 import se.helsingborg.oppna.solarie.index.facet.Facet;
-import se.helsingborg.oppna.solarie.index.facet.FacetValue;
+import se.helsingborg.oppna.solarie.index.facet.FacetDefinition;
 import se.helsingborg.oppna.solarie.index.facet.impl.AnvandareFacet;
-import se.helsingborg.oppna.solarie.index.facet.impl.DiariumFacet;
-import se.helsingborg.oppna.solarie.index.facet.impl.EnhetFacet;
+import se.helsingborg.oppna.solarie.index.facet.impl.DiarierFacet;
+import se.helsingborg.oppna.solarie.index.facet.impl.EnheterFacet;
+import se.helsingborg.oppna.solarie.index.visitors.GetDiarienummer;
+import se.helsingborg.oppna.solarie.index.visitors.GetDiarium;
 import se.helsingborg.oppna.solarie.util.JSONObject;
 import se.helsingborg.oppna.solarie.webapp.JSONPostService;
 
@@ -106,35 +105,39 @@ public class SearchServlet extends JSONPostService {
 
     // collect search results
     timerStarted = System.currentTimeMillis();
-    List<SearchResult> searchResults = Solarie.getInstance().getIndex().search(query, score, explain);
+    final List<SearchResult> searchResults = Solarie.getInstance().getIndex().search(query, score, explain);
     responseJSON.put("length", searchResults.size());
     timersJSON.put("collect", System.currentTimeMillis() - timerStarted);
 
     // create facets
     timerStarted = System.currentTimeMillis();
-    List<Facet> facets = new ArrayList<>(10);
 
-    facets.add(new DiariumFacet());
-    facets.add(new AnvandareFacet());
-    facets.add(new EnhetFacet());
-
-    JSONArray facetsJSON = new JSONArray();
+    final JSONArray facetsJSON = new JSONArray();
     responseJSON.put("facets", facetsJSON);
 
-    for (Facet facet : facets) {
-      facet.populate(searchResults);
-      JSONObject facetJSON = new JSONObject();
-      facetsJSON.put(facetJSON);
-      facetJSON.put("name", facet.getName());
-      facetJSON.put("matches", facet.getMatches().size());
-      JSONArray valuesJSON = new JSONArray();
-      facetJSON.put("values", valuesJSON);
-      for (FacetValue value : facet.getValues()) {
-        JSONObject valueJSON = new JSONObject();
-        valuesJSON.put(valueJSON);
-        valueJSON.put("name", value.getName());
-        valueJSON.put("matches", value.getMatches().size());
-      }
+    List<FacetDefinition> facets = new ArrayList<>(Solarie.getInstance().getIndex().getFacets());
+    Thread[] facetThreads = new Thread[facets.size()];
+    for (int i = 0; i < facets.size(); i++) {
+      final Facet facet = facets.get(i).facetFactory();
+      facetThreads[i] = new Thread(new Runnable() {
+        @Override
+        public void run() {
+          facet.populate(searchResults);
+          if (!facet.getValues().isEmpty()) {
+            try {
+            facetsJSON.put(facet.toJSON());
+            } catch (Exception e) {
+              log.error("Exception while creating JSON for facet " + facet.getName(), e);
+            }
+          }
+        }
+      });
+      facetThreads[i].setDaemon(true);
+      facetThreads[i].start();
+    }
+
+    for (Thread thread : facetThreads) {
+      thread.join();
     }
 
     timersJSON.put("create_facets", System.currentTimeMillis() - timerStarted);
@@ -164,7 +167,36 @@ public class SearchServlet extends JSONPostService {
     JSONArray itemsJSON = new JSONArray();
     responseJSON.put("items", itemsJSON);
 
-    WriteInstanceJSON writeInstanceJSON = new WriteInstanceJSON();
+    final Set<Indexable> instances = new HashSet<>(length * 3);
+    IndexableVisitor<Void> gatherInstances = new IndexableVisitor<Void>() {
+      @Override
+      public Void visit(Arende ärende) {
+        instances.add(ärende);
+
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+      }
+
+      @Override
+      public Void visit(Atgard åtgärd) {
+        instances.add(åtgärd);
+        visit(åtgärd.getÄrende());
+
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+      }
+
+      @Override
+      public Void visit(Dokument dokument) {
+        instances.add(dokument);
+        if (dokument.getÅtgärd() != null) {
+          visit(dokument.getÅtgärd());
+        }
+
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+      }
+    };
+
+
+    GetInstanceJSON getInstanceJSON = new SearchServlet.GetInstanceJSON();
 
     for (int index = offset; index < end && index < total; index++) {
       SearchResult searchResult = searchResults.get(index);
@@ -180,23 +212,39 @@ public class SearchServlet extends JSONPostService {
         searchResultJSON.put("explanation", searchResult.getExplanation().toHtml());
       }
       searchResultJSON.put("type", searchResult.getIndexable().getClass().getSimpleName());
-      searchResultJSON.put("instance", searchResult.getIndexable().accept(writeInstanceJSON));
+      searchResultJSON.put("instance", searchResult.getIndexable().getIdentity());
+
+      searchResult.getIndexable().accept(gatherInstances);
+
     }
+
+    JSONArray instancesJSON = new JSONArray(new ArrayList(instances.size()));
+    responseJSON.put("instances", instancesJSON);
+    for (Indexable instance : instances) {
+      instancesJSON.put(instance.accept(getInstanceJSON));
+    }
+
     timersJSON.put("assemble", System.currentTimeMillis() - timerStarted);
 
   }
 
-  private class WriteInstanceJSON implements IndexableVisitor<JSONObject> {
+  private class GetInstanceJSON implements IndexableVisitor<JSONObject> {
+
+    private JSONObject factory(Indexable indexable) throws JSONException {
+      JSONObject json = new JSONObject(new LinkedHashMap(20));
+      json.put("identity", indexable.getIdentity());
+
+      json.put("diarium", indexable.accept(GetDiarium.getInstance()).getIdentity());
+      json.put("diarienummer", indexable.accept(GetDiarienummer.getInstance()).toString());
+
+      return json;
+    }
 
 
     @Override
     public JSONObject visit(Arende ärende) {
       try {
-        JSONObject json = new JSONObject(new LinkedHashMap(20));
-
-        json.put("identity", ärende.getIdentity());
-        json.put("diarium", ärende.getDiarium().getIdentity());
-        json.put("diarienummer", ärende.getDiarienummer().toString());
+        JSONObject json = factory(ärende);
 
         json.put("mening", ärende.getMening());
 
@@ -206,15 +254,13 @@ public class SearchServlet extends JSONPostService {
       }
     }
 
+
     @Override
     public JSONObject visit(Atgard åtgärd) {
       try {
-        JSONObject json = new JSONObject(new LinkedHashMap(20));
+        JSONObject json = factory(åtgärd);
 
-        json.put("identity", åtgärd.getIdentity());
-        json.put("diarium", åtgärd.getDiarium().getIdentity());
         json.put("ärende", åtgärd.getÄrende().getIdentity());
-        json.put("diarienummer", åtgärd.getÄrende().getDiarienummer().toString());
 
         json.put("text", åtgärd.getText());
 
@@ -227,10 +273,12 @@ public class SearchServlet extends JSONPostService {
     @Override
     public JSONObject visit(Dokument dokument) {
       try {
-        JSONObject json = new JSONObject(new LinkedHashMap(20));
+        JSONObject json = factory(dokument);
 
-        json.put("identity", dokument.getIdentity());
-        json.put("diarium", dokument.getDiarium().getIdentity());
+        if (dokument.getÅtgärd() != null) {
+          json.put("åtgärd", dokument.getÅtgärd().getIdentity());
+
+        }
 
         return json;
       } catch (JSONException je) {

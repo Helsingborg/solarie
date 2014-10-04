@@ -61,7 +61,7 @@ public class CreateArende implements TransactionWithQuery<Root, Arende> {
       throw new IllegalArgumentException("Diarienummer is not set!");
     }
     if (diarium.getÄrendeByDiarienummer().containsKey(diarienummer)) {
-      throw new IllegalArgumentException("It already exists an ärende with this diarienummer! " + diarienummer);
+      throw new IllegalArgumentException("It already exists an ärende with this facet_diarienummer! " + diarienummer);
     }
 
 

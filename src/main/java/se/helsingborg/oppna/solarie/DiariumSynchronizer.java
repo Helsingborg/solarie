@@ -68,7 +68,7 @@ public class DiariumSynchronizer {
 
     synchronized (this) {
       if (syncronizing) {
-        throw new RuntimeException("Already syncronizing.");
+        throw new RuntimeException("Already syncronizing!");
       }
       syncronizing = true;
     }
@@ -76,6 +76,9 @@ public class DiariumSynchronizer {
     try {
 
       started = System.currentTimeMillis();
+
+      log.info("Synchronizing" + diarium.getJdbcURL());
+
       long since = diarium.getSenasteSynkronisering() == null ? 0 : diarium.getSenasteSynkronisering();
 
       // todo läs alltid data från en dag tillbaka
@@ -287,7 +290,7 @@ public class DiariumSynchronizer {
           Diarienummer diarienummer = diarienummerFactory(rs.getString("diarienr"));
           short åtgärdsnummer = rs.getShort("atgardsnr");
 
-          log.debug("Läser in åtgärd #" + åtgärdsnummer + " i ärende med diarienummer " + diarienummer.toString());
+          log.debug("Läser in åtgärd #" + åtgärdsnummer + " i ärende med facet_diarienummer " + diarienummer.toString());
 
 
           // Ärende must be created in case it was added in database after we iterated them above.
@@ -299,7 +302,7 @@ public class DiariumSynchronizer {
 
           Atgard åtgärd = Solarie.getInstance().getPrevayler().execute(new GetAtgardByDiarienummerAndAtgardsnummer(diarium, diarienummer, åtgärdsnummer));
           if (åtgärd == null) {
-            log.info("Skapar åtgärd #" + åtgärdsnummer + " i ärende med diarienummer " + diarienummer.toString());
+            log.info("Skapar åtgärd #" + åtgärdsnummer + " i ärende med facet_diarienummer " + diarienummer.toString());
             åtgärd = Solarie.getInstance().getPrevayler().execute(new CreateAtgard(ärende, åtgärdsnummer));
             dirtyIndexables.add(åtgärd);
           }

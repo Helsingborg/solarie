@@ -1,5 +1,11 @@
-.idea
-*.iml
 target
 data
+
+# jetbrains intellij idea
+.idea
+*.iml
+
+# fyffe.kodapan.se
 src/main/resources/diarier.fyffe.local.json
+src/main/resources/diarier.alla.fyffe.local.json
+

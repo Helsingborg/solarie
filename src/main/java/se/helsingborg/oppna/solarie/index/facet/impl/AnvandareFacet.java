@@ -1,10 +1,16 @@
 package se.helsingborg.oppna.solarie.index.facet.impl;
 
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.json.JSONException;
+import org.json.JSONTokener;
 import se.helsingborg.oppna.solarie.domain.*;
 import se.helsingborg.oppna.solarie.index.SearchResult;
 import se.helsingborg.oppna.solarie.index.facet.Facet;
-import se.helsingborg.oppna.solarie.index.facet.FacetFactory;
+import se.helsingborg.oppna.solarie.index.facet.FacetDefinition;
 import se.helsingborg.oppna.solarie.index.facet.FacetValue;
+import se.helsingborg.oppna.solarie.util.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -15,11 +21,58 @@ import java.util.Set;
  * @author kalle
  * @since 2014-10-03 20:12
  */
-public class AnvandareFacet extends Facet {
+public class AnvandareFacet extends FacetDefinition {
 
   public AnvandareFacet() {
-    super("Användare");
   }
+
+  @Override
+  public void addFields(Document document, Indexable indexable) {
+    GatherAnvandare gatherAnvandare = new GatherAnvandare();
+    indexable.accept(gatherAnvandare);
+    for (Anvandare användare : gatherAnvandare.getAnvändarna()) {
+      document.add(new StringField("facet användare", String.valueOf(användare.getIdentity()), Field.Store.NO));
+    }
+  }
+
+
+  @Override
+  public Facet facetFactory() {
+    return new Facet("Användare") {
+      @Override
+      protected List<FacetValue> valuesFactory(List<SearchResult> searchResults) {
+        GatherAnvandare gatherAnvandare = new GatherAnvandare();
+        for (SearchResult searchResult : searchResults) {
+          searchResult.getIndexable().accept(gatherAnvandare);
+        }
+
+        List<FacetValue> values = new ArrayList<>(gatherAnvandare.getAnvändarna().size());
+        for (final Anvandare användare : gatherAnvandare.getAnvändarna()) {
+
+          final MatchesVisitor matcher = new MatchesVisitor(användare);
+
+          values.add(new FacetValue(searchResults, användare.getNamn() == null ? användare.getSignatur() : användare.getNamn()) {
+
+            @Override
+            public boolean matches(SearchResult searchResult) {
+              return searchResult.getIndexable().accept(matcher);
+            }
+
+            @Override
+            public JSONObject toJSON() throws JSONException {
+              JSONObject facetValueJSON = super.toJSON();
+              facetValueJSON.put("query", new JSONObject(new JSONTokener("{ 'type': 'term', 'field': 'facet användare', 'value': '" + användare.getIdentity() + "' }")));
+              return facetValueJSON;
+
+            }
+
+          });
+        }
+        return values;
+      }
+    };
+  }
+
 
   private class GatherAnvandare implements IndexableVisitor<Void> {
     private Set<Anvandare> användarna = new HashSet<>();
@@ -87,42 +140,4 @@ public class AnvandareFacet extends Facet {
   }
 
 
-  @Override
-  protected List<FacetValue> valuesFactory(List<SearchResult> searchResults) {
-    GatherAnvandare gatherAnvandare = new GatherAnvandare();
-    for (SearchResult searchResult : searchResults) {
-      searchResult.getIndexable().accept(gatherAnvandare);
-    }
-
-
-
-    List<FacetValue> values = new ArrayList<>(gatherAnvandare.getAnvändarna().size());
-    for (final Anvandare användare : gatherAnvandare.getAnvändarna()) {
-
-      final MatchesVisitor matcher = new MatchesVisitor(användare);
-
-      values.add(new FacetValue(searchResults, användare.getNamn() == null ? användare.getSignatur() : användare.getNamn()) {
-
-        @Override
-        public Facet getFacet() {
-          return AnvandareFacet.this;
-        }
-
-        @Override
-        public boolean matches(SearchResult searchResult) {
-          return searchResult.getIndexable().accept(matcher);
-        }
-      });
-    }
-    return values;
-  }
-
-  public class Factory implements FacetFactory {
-
-    @Override
-    public Facet factory() {
-      return new AnvandareFacet();
-    }
-
-  }
 }

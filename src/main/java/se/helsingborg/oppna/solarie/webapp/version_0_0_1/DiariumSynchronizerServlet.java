@@ -1,13 +1,11 @@
 package se.helsingborg.oppna.solarie.webapp.version_0_0_1;
 
-import org.json.JSONException;
 import se.helsingborg.oppna.solarie.DiariumSynchronizer;
 import se.helsingborg.oppna.solarie.Solarie;
 import se.helsingborg.oppna.solarie.domain.Diarium;
 import se.helsingborg.oppna.solarie.util.JSONObject;
 import se.helsingborg.oppna.solarie.webapp.JSONPostService;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;

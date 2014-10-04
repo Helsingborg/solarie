@@ -2,7 +2,6 @@ package se.helsingborg.oppna.solarie.prevalence.transactions.anvandare;
 
 import org.prevayler.Transaction;
 import se.helsingborg.oppna.solarie.domain.Anvandare;
-import se.helsingborg.oppna.solarie.domain.Enhet;
 import se.helsingborg.oppna.solarie.domain.Root;
 
 import java.util.Date;
