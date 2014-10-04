@@ -15,7 +15,7 @@ import java.util.*;
 public class DiariumFacet extends Facet {
 
   public DiariumFacet() {
-    super("Diarium");
+    super("Diarier");
   }
 
   @Override

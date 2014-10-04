@@ -15,6 +15,7 @@ import se.helsingborg.oppna.solarie.index.facet.Facet;
 import se.helsingborg.oppna.solarie.index.facet.FacetValue;
 import se.helsingborg.oppna.solarie.index.facet.impl.AnvandareFacet;
 import se.helsingborg.oppna.solarie.index.facet.impl.DiariumFacet;
+import se.helsingborg.oppna.solarie.index.facet.impl.EnhetFacet;
 import se.helsingborg.oppna.solarie.util.JSONObject;
 import se.helsingborg.oppna.solarie.webapp.JSONPostService;
 
@@ -115,6 +116,7 @@ public class SearchServlet extends JSONPostService {
 
     facets.add(new DiariumFacet());
     facets.add(new AnvandareFacet());
+    facets.add(new EnhetFacet());
 
     JSONArray facetsJSON = new JSONArray();
     responseJSON.put("facets", facetsJSON);

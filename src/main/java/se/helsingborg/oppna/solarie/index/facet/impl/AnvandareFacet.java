@@ -17,9 +17,6 @@ import java.util.Set;
  */
 public class AnvandareFacet extends Facet {
 
-  final Set<Anvandare> anvandarna = new HashSet<>();
-
-
   public AnvandareFacet() {
     super("Användare");
   }
@@ -104,7 +101,7 @@ public class AnvandareFacet extends Facet {
 
       final MatchesVisitor matcher = new MatchesVisitor(användare);
 
-      values.add(new FacetValue(searchResults, användare.getNamn()) {
+      values.add(new FacetValue(searchResults, användare.getNamn() == null ? användare.getSignatur() : användare.getNamn()) {
 
         @Override
         public Facet getFacet() {
