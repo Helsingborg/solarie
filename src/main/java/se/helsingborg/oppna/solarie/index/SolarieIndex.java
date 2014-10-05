@@ -242,69 +242,27 @@ public class SolarieIndex {
     return document;
   }
 
-  public List<SearchResult> search(final Query query, final boolean score, final boolean explain) throws IOException {
 
-    final Map<Integer, SearchResult> searchResultsByDocumentNumber = new HashMap<>(1000);
-    final List<SearchResult> searchResults = new ArrayList<>(1000);
+
+  public List<SearchResult> search(
+      final Query query,
+      boolean score,
+
+      // todo Set<Indexable> explain, if null false, if empty all, else all that use specified
+      boolean explain) throws IOException {
 
     IndexSearcher indexSearcher = getSearcherManager().acquire();
     try {
 
-      indexSearcher.search(query, new Collector() {
-
-        private Scorer scorer;
-        private AtomicReaderContext context;
-        private NumericDocValues identityDocValues;
-
-        @Override
-        public void setScorer(Scorer scorer) throws IOException {
-          this.scorer = scorer;
-        }
-
-        @Override
-        public void collect(int doc) throws IOException {
-          if (identityDocValues == null) {
-            identityDocValues = context.reader().getNumericDocValues(SolarieFields.identity_doc_value);
-          }
-
-          SearchResult searchResult = new SearchResult();
-
-          Long identity = identityDocValues.get(doc);
-          Indexable indexable = (Indexable) Solarie.getInstance().getPrevayler().prevalentSystem().getIdentifiables().get(identity);
-
-          searchResult.setInstance(indexable);
-
-          if (score) {
-            searchResult.setScore(scorer.score());
-          }
-
-          if (explain) {
-            searchResultsByDocumentNumber.put(doc, searchResult);
-          }
-
-          searchResults.add(searchResult);
-
-        }
-
-        @Override
-        public void setNextReader(AtomicReaderContext context) throws IOException {
-          this.context = context;
-          identityDocValues = null;
-        }
-
-        @Override
-        public boolean acceptsDocsOutOfOrder() {
-          return true;
-        }
-
-      });
+      SolarieCollector collector = new SolarieCollector(score, explain);
+      indexSearcher.search(query, collector);
 
       // todo threaded? global thread pool then or what?
-      for (Map.Entry<Integer, SearchResult> entry : searchResultsByDocumentNumber.entrySet()) {
+      for (Map.Entry<Integer, SearchResult> entry : collector.getSearchResultsByDocumentNumber().entrySet()) {
         entry.getValue().setExplanation(indexSearcher.explain(query, entry.getKey()));
       }
 
-      return searchResults;
+      return collector.getSearchResults();
 
     } finally {
       searcherManager.release(indexSearcher);
@@ -317,6 +275,78 @@ public class SolarieIndex {
 
   public Set<FacetDefinition> getFacets() {
     return facets;
+  }
+
+  private class SolarieCollector extends Collector {
+
+    private boolean score;
+    private boolean explain;
+
+    private SolarieCollector(boolean score, boolean explain) {
+      this.score = score;
+      this.explain = explain;
+    }
+
+    private Map<Integer, SearchResult> searchResultsByDocumentNumber = new HashMap<>(1000);
+    private List<SearchResult> searchResults = new ArrayList<>(1000);
+
+
+    private Float greatestScore;
+    private Scorer scorer;
+    private AtomicReaderContext context;
+    private NumericDocValues identityDocValues;
+
+    @Override
+    public void setScorer(Scorer scorer) throws IOException {
+      this.scorer = scorer;
+    }
+
+    @Override
+    public void collect(int doc) throws IOException {
+      if (identityDocValues == null) {
+        identityDocValues = context.reader().getNumericDocValues(SolarieFields.identity_doc_value);
+      }
+
+      SearchResult searchResult = new SearchResult();
+
+      Long identity = identityDocValues.get(doc);
+      Indexable indexable = (Indexable) Solarie.getInstance().getPrevayler().prevalentSystem().getIdentifiables().get(identity);
+
+      searchResult.setInstance(indexable);
+
+      if (score) {
+        searchResult.setScore(scorer.score());
+        if (greatestScore == null || searchResult.getScore() > greatestScore) {
+          greatestScore = searchResult.getScore();
+        }
+      }
+
+      if (explain) {
+        searchResultsByDocumentNumber.put(doc, searchResult);
+      }
+
+      searchResults.add(searchResult);
+
+    }
+
+    @Override
+    public void setNextReader(AtomicReaderContext context) throws IOException {
+      this.context = context;
+      identityDocValues = null;
+    }
+
+    @Override
+    public boolean acceptsDocsOutOfOrder() {
+      return true;
+    }
+
+    private Map<Integer, SearchResult> getSearchResultsByDocumentNumber() {
+      return searchResultsByDocumentNumber;
+    }
+
+    private List<SearchResult> getSearchResults() {
+      return searchResults;
+    }
   }
 
 }

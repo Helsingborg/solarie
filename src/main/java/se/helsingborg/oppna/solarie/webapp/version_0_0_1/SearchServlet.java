@@ -141,7 +141,7 @@ public class SearchServlet extends JSONPostService {
     }
   }
 
-  private IndexableVisitor<Long> getTimestamp = new IndexableVisitor<Long>(){
+  private IndexableVisitor<Long> getTimestamp = new IndexableVisitor<Long>() {
     @Override
     public Long visit(Arende ärende) {
       return ärende.getRegistrerad();
@@ -366,7 +366,30 @@ public class SearchServlet extends JSONPostService {
         } else {
           Collections.sort(searchResults, sortOrder);
         }
+
+
       }
+
+
+      if (score) {
+        float topScore;
+
+        Comparator<SearchResult> scoreOrder = sortOrders.get("score");
+        if (sortOrder == scoreOrder) {
+          topScore = searchResults.get(0).getScore();
+        } else {
+          List<SearchResult> scored = new ArrayList<>(searchResults);
+          Collections.sort(scored, scoreOrder);
+          topScore = scored.get(0).getScore();
+        }
+        float factor = 1f / topScore;
+        for (SearchResult searchResult : searchResults) {
+          searchResult.setNormalizedScore(factor * searchResult.getScore());
+        }
+
+      }
+
+
       timersJSON.put("sort", System.currentTimeMillis() - timerStarted);
 
 
@@ -487,6 +510,7 @@ public class SearchServlet extends JSONPostService {
       searchResultJSON.put("index", index);
       if (score) {
         searchResultJSON.put("score", searchResult.getScore());
+        searchResultJSON.put("normalizedScore", searchResult.getNormalizedScore());
       }
       if (explain) {
         // todo as JSON

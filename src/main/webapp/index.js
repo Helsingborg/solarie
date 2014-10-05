@@ -30,11 +30,6 @@ $(function onLoad() {
     }
   };
 
-
-  searchButton.onclick = function () {
-    search();
-  };
-
   search();
 
 });
@@ -45,6 +40,9 @@ function search() {
   var searchTimer = new Date().getTime();
 
   var request = {
+    reference: {
+      timestamp: new Date().getTime()
+    },
     sortOrder: 'score',
     explain: false,
     offset: 0,
@@ -93,18 +91,35 @@ function search() {
       request,
       function success(response) {
 
-        $('#search_results').html("");
-
+        var actualTimeSpent = new Date().getTime() - response.reference;
 
         var sekunder = (response.timers.total / 1000).toString();
         sekunder = sekunder.substring(0, Math.min(sekunder.length, 5));
         sekunder = sekunder.replace(".", ",");
 
-        $('#response_length').text(response.length + ' träffar på ' + sekunder + ' sekunder');
-
-        $('#response_information').css('display', 'block');
+        var searchResultsDiv = $('#search_results');
 
         $('#facets').empty();
+        searchResultsDiv.empty();
+
+
+        if (response.success === false) {
+          var div = $("div");
+          div.text("PC LOAD LETTER</POC>");
+          div.appendTo(searchResultsDiv);
+          return;
+        }
+
+        $('#response_length').text(response.length + ' träffar på ' + sekunder + ' sekunder');
+
+        if (response.length === 0) {
+          var div = $("div");
+          div.text("</POC>");
+          div.appendTo(searchResultsDiv);
+          return;
+        }
+
+
         for (var facetIndex = 0; facetIndex < response.facets.length; facetIndex++) {
           var facet = response.facets[facetIndex];
 
@@ -113,7 +128,7 @@ function search() {
           html += "<div style='padding-bottom: 1.5em; display: none;'>";
           for (var facetValueIndex = 0; facetValueIndex < facet.values.length; facetValueIndex++) {
             var facetValue = facet.values[facetValueIndex];
-            html += "<div style='padding-left: 1em;'>";
+            html += "<div style='padding-left: 1em; padding-bottom: 0.25em;'>";
             html += facetValue.name;
             html += "&nbsp;(";
             html += facetValue.matches;
@@ -156,7 +171,7 @@ function search() {
 
             html += "<div>";
 
-            html += "<span class='search_result_diarienummer'>" + item.instance.diarienummer + "</span>";
+            html += "<span class='diarienummer'>" + item.instance.diarienummer + "</span>";
 
             var typeText;
             if (item.type === "Arende") {
@@ -178,7 +193,7 @@ function search() {
             html += "</div>";
 
 
-            html += "<div class='search_result_title'>";
+            html += "<div class='title'>";
             if (item.type === "Arende") {
               html += item.instance.mening;
             } else if (item.type === "Atgard") {
@@ -218,18 +233,18 @@ function search() {
             var html = "<div class='search_result'>";
 
             html += "<div>";
-            html += "<span class='search_result_diarienummer'>" + group.items[0].instance.diarienummer + "</span>";
+            html += "<span class='diarienummer'>" + group.items[0].instance.diarienummer + "</span>";
 
 
-            html += "<span class='search_result_type'>" + getTypeText(group.items[0].type) + "</span>";
-            html += "<span class='search_result_timestamp'>" + $.format.date(group.items[0].timestamp, 'yyyy-MM-dd') + "</span>";
+            html += "<span class='indexable_type'>" + getTypeText(group.items[0].type) + "</span>";
+            html += "<span class='timestamp'>" + $.format.date(group.items[0].timestamp, 'yyyy-MM-dd') + "</span>";
 
-            html += "<span class='search_result_diarium'>" + group.items[0].instance.diarium.namn + "</span>";
+            html += "<span class='diarium'>" + group.items[0].instance.diarium.namn + "</span>";
 
 
             html += "</div>";
 
-            html += "<div class='search_result_title'>";
+            html += "<div class='title link'>";
             if (group.items[0].type === "Arende") {
               html += group.items[0].instance.mening;
             } else if (group.items[0].type === "Atgard") {
@@ -247,6 +262,9 @@ function search() {
               ignoredInstances.push(group.items[0].instance);
             }
 
+
+            //
+            //
             // group items
 
             html += "<table>";
@@ -254,10 +272,11 @@ function search() {
               var item = group.items[itemIndex];
               if ($.inArray(item.instance, ignoredInstances) == -1) {
 
-                html += "<tr class='search_result_group_item'>";
+                html += "<tr class='group_item search_result'>";
 
-                html += "<td class='search_result_timestamp'>" + $.format.date(item.timestamp, 'yyyy-MM-dd') + "</td>";
-                html += "<td class='search_result_group_item_type'>" + getTypeText(item.type) + "</td>";
+                html += "<td class='score'>" + item.normalizedScore + "</td>";
+                html += "<td><span class='timestamp'>" + $.format.date(item.timestamp, 'yyyy-MM-dd') + "</span></td>";
+                html += "<td class='indexable_type link'>" + getTypeText(item.type) + "</td>";
 
                 html += "<td class='search_result_group_item_title'>";
                 if (item.type === "Arende") {
@@ -270,6 +289,7 @@ function search() {
                   html += "Utan titel";
                 }
                 html += "</td>";
+                html += "<td style='width: 20em;'></td>";
 
 
               }

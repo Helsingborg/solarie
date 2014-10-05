@@ -19,42 +19,47 @@
 </head>
 <body>
 
+<!--root-->
 <table style="width: 100%;">
   <tr>
+    <td id="response_length" style="height:1em; text-align: right">
+      Laddar in alla objekt i omvänd kronologisk ordning…
+    </td>
+  </tr>
+
+  <tr>
     <td>
-      <table style="width: 100%">
+      <table style="width: 100%; vertical-align: middle;">
         <tr>
-          <td id="response_length" style="height:1em; text-align: right">
-            Laddar in alla objekt i omvänd kronologisk ordning…
-          </td>
-        </tr>
-        <tr>
-          <td style="text-align: center">
-            <input id="query" type="text"/>
-            <button id="search">Sök</button>
+          <td style="">
+            <table style="width: 100%;">
+              <tr>
+                <td style="text-align: right;">
+                  <input id="query" type="text"/>
+                </td>
+                <td style="width: 20em;">
+                  <!--<button style="width: 3em; height: 1.5em;" id="search"/>-->
+                </td>
+              </tr>
+              <tr>
+                <td style="text-align: right;" id="active_facets">
+                   hej
+                </td>
+                <td></td>
+              </tr>
+            </table>
           </td>
         </tr>
       </table>
-      <div id="header">
-
-        <div style="height: 50px;"></div>
-        <div style="width: 100%; text-align: center">
-        </div>
-        <div style="width: 100%; text-align: center; display: none;" id="response_information">
-
-        </div>
-        <div style="height: 1em;"></div>
-        <div style="width: 100%; text-align: center" id="active_facets"></div>
-        <div style="height: 1em;"></div>
-      </div>
     </td>
   </tr>
+
   <tr>
     <td>
       <table>
         <tr>
-          <td style="width: 20em; vertical-align: top">
-            <div id="facets"></div>
+          <td id="facets" style="width: 20em; vertical-align: top">
+
           </td>
           <td style="vertical-align: top">
             <div id="search_results"></div>

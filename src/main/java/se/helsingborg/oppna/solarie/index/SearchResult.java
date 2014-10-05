@@ -10,6 +10,7 @@ import se.helsingborg.oppna.solarie.domain.Indexable;
 public class SearchResult {
 
   private Float score;
+  private Float normalizedScore;
   private Indexable instance;
   private Explanation explanation;
 
@@ -35,5 +36,13 @@ public class SearchResult {
 
   public void setInstance(Indexable instance) {
     this.instance = instance;
+  }
+
+  public Float getNormalizedScore() {
+    return normalizedScore;
+  }
+
+  public void setNormalizedScore(Float normalizedScore) {
+    this.normalizedScore = normalizedScore;
   }
 }
