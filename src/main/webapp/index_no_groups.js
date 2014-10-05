@@ -17,10 +17,7 @@ function setInstance(instance) {
 
 $(function onLoad() {
 
-
-  var queryInput = $('#query');
-  queryInput.watermark("Skriv din fråga och tryck på enter!", "watermark2");
-  queryInput.focus();
+  $('#query').focus();
 
   searchButton = document.getElementById("search");
   queryInputText = document.getElementById("query");
@@ -28,7 +25,7 @@ $(function onLoad() {
 
   queryInputText.onkeypress = function (e) {
     var key = e.which || e.keyCode;
-    if (key == 13 || key == 32) {
+    if (key == 13) {
       search({text: queryInputText.value});
     }
   };
@@ -49,7 +46,7 @@ function search() {
     sortOrder: 'score',
     explain: false,
     offset: 0,
-    length: 100,
+    length: 10,
     query: {
       type: 'boolean',
       clauses: [
@@ -83,7 +80,7 @@ function search() {
       occur: 'must',
       query: {
         type: 'boolean analyzed text should',
-        fields: ['text', 'text singularform', 'text_särskivning'],
+        field: 'text',
         value: textQuery
       }
     });
@@ -108,7 +105,7 @@ function search() {
 
         if (response.success === false) {
           var div = $("div");
-          div.text("PC LOAD LETTER");
+          div.text("PC LOAD LETTER</POC>");
           div.appendTo(searchResultsDiv);
           return;
         }
@@ -117,7 +114,7 @@ function search() {
 
         if (response.length === 0) {
           var div = $("div");
-          div.text("Hittade inget!</POC>");
+          div.text("</POC>");
           div.appendTo(searchResultsDiv);
           return;
         }
@@ -160,11 +157,67 @@ function search() {
           if (typeof instance.diarium === 'number') {
             instance.diarium = getInstance(instance.diarium);
           }
-          if (typeof instance.enhet === 'number') {
-            instance.enhet = getInstance(instance.enhet);
-          }
         }
 
+
+        function renderSearchResults() {
+          for (var index = 0; index < response.items.length; index++) {
+
+            response.items[index].instance = getInstance(response.items[index].instance);
+
+            var item = response.items[index];
+
+            var html = "<div class='search_result' id='search_result_" + item.index + "'>";
+
+            html += "<div>";
+
+            html += "<span class='diarienummer'>" + item.instance.diarienummer + "</span>";
+
+            var typeText;
+            if (item.type === "Arende") {
+              typeText = "Ärende";
+              html += "<span class='search_result_type'>" + typeText + "</span>";
+            } else if (item.type === "Atgard") {
+              typeText = "Åtgärd";
+              html += "<span class='search_result_type'>" + typeText + "</span>";
+              html += "<span class='search_result_atgard_arende'>Del av ärendet <span style='font-style: italic'>" + item.instance.ärende.mening + "</span></span>";
+            } else if (item.type === "Dokument") {
+              typeText = "Dokument";
+              html += "<span class='search_result_type'>" + typeText + "</span>";
+            } else {
+              typeText = item.type;
+              html += "<span class='search_result_type'>" + typeText + "</span>";
+            }
+
+
+            html += "</div>";
+
+
+            html += "<div class='title'>";
+            if (item.type === "Arende") {
+              html += item.instance.mening;
+            } else if (item.type === "Atgard") {
+              html += item.instance.text;
+            } else if (item.type === "Dokument") {
+              html += item.instance.text;
+            } else {
+              html += typeText + " utan titel";
+            }
+            html += "</div>";
+
+
+            if (item.explaination !== undefined) {
+              html += "<br/>";
+              html += item.explanation;
+            }
+
+            html += "</div>";
+
+            html += "<div style='height: 10;'></div>";
+
+            $(html).appendTo('#search_results');
+          }
+        }
 
         function renderGroups() {
           for (var index = 0; index < response.groups.length; index++) {
@@ -177,45 +230,31 @@ function search() {
 
             }
 
-
-            var groupElement = $("<div class='group_result'></div>");
-            groupElement.appendTo(searchResultsDiv);
-
-            var html = "<div class='group_first_item'>";
+            var html = "<div class='search_result'>";
 
             html += "<div>";
             html += "<span class='diarienummer'>" + group.items[0].instance.diarienummer + "</span>";
-            html += "<span class='padding'></span>";
-            html += "<span class='timestamp'>" + (group.items[0].timestamp ? $.format.date(group.items[0].timestamp, 'yyyy-MM-dd') : "????-??-??") + "</span>";
-            html += "<span class='padding'></span>";
+
+
+            html += "<span class='indexable_type'>" + getTypeText(group.items[0].type) + "</span>";
+            html += "<span class='timestamp'>" + $.format.date(group.items[0].timestamp, 'yyyy-MM-dd') + "</span>";
+
             html += "<span class='diarium'>" + group.items[0].instance.diarium.namn + "</span>";
-            if (group.items[0].instance.enhet) {
-              html += "/<span class='group_first_item_enhet'>" + group.items[0].instance.enhet.namn + "</span>";
-            }
-            html += "</div>";
 
-            html += "<div>";
 
             html += "</div>";
 
-            $(html).appendTo(groupElement);
-
-            var rowDiv = $('<div/>');
-            rowDiv.appendTo(groupElement);
-
-            $("<span class='group_first_item_type'>" + getTypeText(group.items[0]) + ":&nbsp;</span>").appendTo(rowDiv);
-            var groupTitle = $("<span class='title group_first_item_title link'>");
-            makeLink(groupTitle);
-            groupTitle.appendTo(rowDiv);
+            html += "<div class='title link'>";
             if (group.items[0].type === "Arende") {
-              groupTitle.text(group.items[0].instance.mening);
+              html += group.items[0].instance.mening;
             } else if (group.items[0].type === "Atgard") {
-              groupTitle.text(group.items[0].instance.text);
+              html += group.items[0].instance.text;
             } else if (group.items[0].type === "Dokument") {
-              groupTitle.text(group.items[0].instance.text);
+              html += group.items[0].instance.text;
             } else {
-              groupTitle.text(getTypeText(group.items[0]) + " utan titel.");
+              html += typeText + " utan titel";
             }
+            html += "</div>";
 
             var ignoredInstances = [];
 
@@ -228,41 +267,49 @@ function search() {
             //
             // group items
 
-            var groupItemsElement = $('<div class="group_items"/>');
-            groupItemsElement.appendTo(groupElement);
-
+            html += "<table>";
             for (var itemIndex = 1; itemIndex < group.items.length; itemIndex++) {
               var item = group.items[itemIndex];
               if ($.inArray(item.instance, ignoredInstances) == -1) {
 
-                var groupItemElement = $('<div class="group_item"/>');
-                groupItemElement.appendTo(groupItemsElement);
+                html += "<tr class='group_item search_result'>";
 
-//                html += "<span class='score'>" + item.normalizedScore + "</span>";
-                $("<span class='timestamp'>" + (item.timestamp ? $.format.date(item.timestamp, 'yyyy-MM-dd') : "????-??-??") + "</span>").appendTo(groupItemElement);
-                $("<span class='padding'></span>").appendTo(groupItemElement);
-                $("<span class='indexable_type'>").appendTo(groupItemElement);
-                var groupItemType = $("<span class='link'/>");
-                groupItemType.appendTo(groupItemElement);
-                groupItemType.text(getTypeText(item));
-                $("<span>:&nbsp;</span>").appendTo(groupItemElement);
+                html += "<td class='score'>" + item.normalizedScore + "</td>";
+                html += "<td><span class='timestamp'>" + $.format.date(item.timestamp, 'yyyy-MM-dd') + "</span></td>";
+                html += "<td class='indexable_type link'>" + getTypeText(item.type) + "</td>";
 
-                var groupItemTitle = $("<span class='title'/>");
-                groupItemTitle.appendTo(groupItemElement);
-
+                html += "<td class='search_result_group_item_title'>";
                 if (item.type === "Arende") {
-                  groupItemTitle.text(item.instance.mening);
+                  html += item.instance.mening;
                 } else if (item.type === "Atgard") {
-                  groupItemTitle.text(item.instance.text);
+                  html += item.instance.text;
                 } else if (item.type === "Dokument") {
-                  groupItemTitle.text(item.instance.text);
+                  html += item.instance.text;
                 } else {
-                  groupItemTitle.text(getTypeText(item) + " utan titel");
+                  html += "Utan titel";
                 }
+                html += "</td>";
+                html += "<td style='width: 20em;'></td>";
+
+
               }
+              html += "</tr>";
 
 
             }
+            html += "</table>";
+
+
+            if (group.items[0].explaination !== undefined) {
+              html += "<br/>";
+              html += group.items[0].explanation;
+            }
+
+            html += "</div>";
+
+            html += "<div style='height: 10;'></div>";
+
+            $(html).appendTo('#search_results');
           }
 
         }
@@ -279,16 +326,6 @@ function search() {
 
 }
 
-function makeLink(element) {
-  element.mouseout(function () {
-    element.css('cursor', 'default');
-  });
-  element.mouseover(function () {
-    element.css('cursor', 'pointer');
-  });
-
-}
-
 function appendFacetElement(html, facet) {
   var facetElement = $(html);
   facetElement.get(0).facet = facet;
@@ -296,7 +333,12 @@ function appendFacetElement(html, facet) {
   var facetNameElement = facetElement.find('span');
   var valuesElement = facetElement.find('div');
 
-  makeLink(facetElement);
+  facetElement.mouseout(function () {
+    facetElement.css('cursor', 'default');
+  });
+  facetElement.mouseover(function () {
+    facetElement.css('cursor', 'pointer');
+  });
 
   facetNameElement.click(function () {
     if (valuesElement.is(":visible")) {
@@ -315,18 +357,10 @@ function appendFacetElement(html, facet) {
       var facet = facetElement.get(0).facet;
       var facetValue = facet.values[index]
       selectedFacets.push(facetValue);
-      var activeFacet = $('<span/>');
+      var activeFacet = $('<span style="padding-left: 2em;"/>');
       activeFacet.addClass('active_facet');
       activeFacet.addClass('link');
-      activeFacet.click(function () {
-        selectedFacets.splice(selectedFacets.indexOf(facet), 1);
-        $(this).remove();
-        search();
-      });
-      activeFacet.text(facet.name + ": " + facetValue.name);
-
-      makeLink(activeFacet);
-
+      activeFacet.text(facet.name + "/" + facetValue.name);
       activeFacet.appendTo($('#active_facets'));
       search();
     });
@@ -336,19 +370,12 @@ function appendFacetElement(html, facet) {
   return facetElement;
 }
 
-function getTypeText(searchResult) {
-  if (searchResult.type === "Arende") {
+function getTypeText(type) {
+  if (type === "Arende") {
     return "Ärende";
-  } else if (searchResult.type === "Atgard") {
-
-    if (searchResult.instance.inkom) {
-      return "Inkommande åtgärd";
-    } else if (searchResult.instance.utgick) {
-      return "Utgående åtgärd";
-    } else {
-      return "Åtgärd";
-    }
-  } else if (searchResult.type === "Dokument") {
+  } else if (type === "Atgard") {
+    return "Åtgärd";
+  } else if (type === "Dokument") {
     return "Dokument";
   } else {
     return type;

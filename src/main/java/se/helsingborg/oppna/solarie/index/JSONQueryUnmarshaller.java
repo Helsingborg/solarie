@@ -57,12 +57,15 @@ public class JSONQueryUnmarshaller {
 
       BooleanQuery bq = new BooleanQuery();
       try {
-        String field = jsonQuery.getString("field");
-        TokenStream tokenStream = analyzer.tokenStream(field, jsonQuery.getString("value"));
-        CharTermAttribute termAtt = tokenStream.addAttribute(CharTermAttribute.class);
-        tokenStream.reset();
-        while (tokenStream.incrementToken()) {
-          bq.add(new TermQuery(new Term(field, termAtt.toString())), BooleanClause.Occur.SHOULD);
+        JSONArray fields = jsonQuery.getJSONArray("fields");
+        for (int i = 0; i < fields.length(); i++) {
+          String field = fields.getString(i);
+          TokenStream tokenStream = analyzer.tokenStream(field, jsonQuery.getString("value"));
+          CharTermAttribute termAtt = tokenStream.addAttribute(CharTermAttribute.class);
+          tokenStream.reset();
+          while (tokenStream.incrementToken()) {
+            bq.add(new TermQuery(new Term(field, termAtt.toString())), BooleanClause.Occur.SHOULD);
+          }
         }
       } catch (Exception e) {
         throw new RuntimeException(e);

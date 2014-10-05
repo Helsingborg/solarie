@@ -15,6 +15,7 @@ import se.helsingborg.oppna.solarie.index.facet.FacetDefinition;
 import se.helsingborg.oppna.solarie.index.facet.impl.AnvandareFacet;
 import se.helsingborg.oppna.solarie.index.facet.impl.DiarierFacet;
 import se.helsingborg.oppna.solarie.index.facet.impl.EnheterFacet;
+import se.helsingborg.oppna.solarie.index.facet.impl.InkommetUtgaendeFacet;
 import se.helsingborg.oppna.solarie.index.visitors.GetDiarienummer;
 
 import java.io.File;
@@ -41,6 +42,7 @@ public class SolarieIndex {
     facets.add(new DiarierFacet());
     facets.add(new EnheterFacet());
     facets.add(new AnvandareFacet());
+    facets.add(new InkommetUtgaendeFacet());
   }
 
   public void open(File path) throws Exception {

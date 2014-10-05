@@ -98,13 +98,24 @@ public class SearchServlet extends JSONPostService {
         @Override
         public Long visit(Dokument dokument) {
           return 0l; // todo
-//          return dokument.getRegistrerad();
+//          return dokument.getUtgick();
         }
       };
 
       @Override
       public int compare(SearchResult o1, SearchResult o2) {
-        return o1.getInstance().accept(getTimestamp).compareTo(o2.getInstance().accept(getTimestamp));
+        Long t1 = o1.getInstance().accept(getTimestamp);
+        Long t2 = o2.getInstance().accept(getTimestamp);
+
+        if (t1 == null && t2 == null) {
+          return 0;
+        } else if (t1 != null && t2 != null) {
+          return t2.compareTo(t1);
+        } else if (t1 == null) {
+          return 1;
+        } else {
+          return -1;
+        }
       }
     });
 
@@ -219,6 +230,10 @@ public class SearchServlet extends JSONPostService {
 
         json.put("mening", ärende.getMening());
 
+        if (ärende.getEnhet() != null) {
+          json.put("enhet", ärende.getEnhet().getIdentity());
+        }
+
         return json;
       } catch (JSONException je) {
         throw new RuntimeException(je);
@@ -233,7 +248,14 @@ public class SearchServlet extends JSONPostService {
 
         json.put("ärende", åtgärd.getÄrende().getIdentity());
 
+        if (åtgärd.getEnhet() != null) {
+          json.put("enhet", åtgärd.getEnhet().getIdentity());
+        }
+
         json.put("text", åtgärd.getText());
+
+        json.put("inkom", åtgärd.getInkom());
+        json.put("utgick", åtgärd.getUtgick());
 
         return json;
       } catch (JSONException je) {
@@ -248,7 +270,9 @@ public class SearchServlet extends JSONPostService {
 
         if (dokument.getÅtgärd() != null) {
           json.put("åtgärd", dokument.getÅtgärd().getIdentity());
-
+          if (dokument.getÅtgärd().getEnhet() != null) {
+            json.put("enhet", dokument.getÅtgärd().getEnhet().getIdentity());
+          }
         }
 
         return json;
@@ -268,30 +292,36 @@ public class SearchServlet extends JSONPostService {
 
     private int end;
 
-    private Set<Identitfiable> instances = new HashSet<>(length * 3);
+    private Set<Identitfiable> instances = new HashSet<Identitfiable>(length * 3){
+      @Override
+      public boolean add(Identitfiable identitfiable) {
+        return identitfiable != null && super.add(identitfiable);
+      }
+    };
     IndexableVisitor<Void> gatherInstances = new IndexableVisitor<Void>() {
       @Override
       public Void visit(Arende ärende) {
         instances.add(ärende);
         instances.add(ärende.getDiarium());
+        instances.add(ärende.getEnhet());
         return null;
       }
 
       @Override
       public Void visit(Atgard åtgärd) {
-        instances.add(åtgärd);
         visit(åtgärd.getÄrende());
+        instances.add(åtgärd);
+        instances.add(åtgärd.getEnhet());
         return null;
       }
 
       @Override
       public Void visit(Dokument dokument) {
-        instances.add(dokument);
-        instances.add(dokument.getDiarium());
         if (dokument.getÅtgärd() != null) {
           visit(dokument.getÅtgärd());
         }
-
+        instances.add(dokument);
+        instances.add(dokument.getDiarium());
         return null;
       }
     };
@@ -357,41 +387,42 @@ public class SearchServlet extends JSONPostService {
 
 
       // sort order
-      timerStarted = System.currentTimeMillis();
       Comparator<SearchResult> sortOrder = null;
-      if (requestJSON.has("sortOrder")) {
-        sortOrder = sortOrders.get(requestJSON.getString("sortOrder"));
-        if (sortOrder == null) {
-          throw new RuntimeException("Unsupported sort order: " + requestJSON.getString("sortOrder"));
-        } else {
-          Collections.sort(searchResults, sortOrder);
+      if (!searchResults.isEmpty()) {
+        timerStarted = System.currentTimeMillis();
+        if (requestJSON.has("sortOrder")) {
+          sortOrder = sortOrders.get(requestJSON.getString("sortOrder"));
+          if (sortOrder == null) {
+            throw new RuntimeException("Unsupported sort order: " + requestJSON.getString("sortOrder"));
+          } else {
+            Collections.sort(searchResults, sortOrder);
+          }
+
+
         }
 
 
+        if (score) {
+          float topScore;
+
+          Comparator<SearchResult> scoreOrder = sortOrders.get("score");
+          if (sortOrder == scoreOrder) {
+            topScore = searchResults.get(0).getScore();
+          } else {
+            List<SearchResult> scored = new ArrayList<>(searchResults);
+            Collections.sort(scored, scoreOrder);
+            topScore = scored.get(0).getScore();
+          }
+          float factor = 1f / topScore;
+          for (SearchResult searchResult : searchResults) {
+            searchResult.setNormalizedScore(factor * searchResult.getScore());
+          }
+
+        }
+
+
+        timersJSON.put("sort", System.currentTimeMillis() - timerStarted);
       }
-
-
-      if (score) {
-        float topScore;
-
-        Comparator<SearchResult> scoreOrder = sortOrders.get("score");
-        if (sortOrder == scoreOrder) {
-          topScore = searchResults.get(0).getScore();
-        } else {
-          List<SearchResult> scored = new ArrayList<>(searchResults);
-          Collections.sort(scored, scoreOrder);
-          topScore = scored.get(0).getScore();
-        }
-        float factor = 1f / topScore;
-        for (SearchResult searchResult : searchResults) {
-          searchResult.setNormalizedScore(factor * searchResult.getScore());
-        }
-
-      }
-
-
-      timersJSON.put("sort", System.currentTimeMillis() - timerStarted);
-
 
       GetInstanceJSON getInstanceJSON = new SearchServlet.GetInstanceJSON();
 
@@ -471,9 +502,77 @@ public class SearchServlet extends JSONPostService {
         });
       }
 
+      // move defaults to top, i.e. parent instances of this
 
       for (int groupIndex = offset; groupIndex < end && groupIndex < orderdGroups.size(); groupIndex++) {
-        Group group = orderdGroups.get(groupIndex);
+        final Group group = orderdGroups.get(groupIndex);
+        Collections.sort(group.searchResults, sortOrder);
+
+        group.searchResults.get(0).getInstance().accept(new IndexableVisitor<Void>() {
+          @Override
+          public Void visit(Arende ärende) {
+            return null;
+          }
+
+          @Override
+          public Void visit(Atgard åtgärd) {
+            SearchResult ärende = null;
+            for (int i = 1; i < group.searchResults.size(); i++) {
+              SearchResult searchResult = group.searchResults.get(i);
+              if (searchResult.getInstance() == åtgärd.getÄrende()) {
+                ärende = searchResult;
+                break;
+              }
+            }
+            if (ärende != null) {
+              group.searchResults.remove(ärende);
+            } else {
+              ärende = new SearchResult();
+              ärende.setScore(0f);
+              ärende.setInstance(åtgärd.getÄrende());
+            }
+
+            group.searchResults.add(1, ärende);
+
+            return null;
+          }
+
+          @Override
+          public Void visit(Dokument dokument) {
+            if (dokument.getÅtgärd() != null) {
+              SearchResult åtgärd = null;
+              SearchResult ärende = null;
+              for (int i = 1; i < group.searchResults.size(); i++) {
+                SearchResult searchResult = group.searchResults.get(i);
+                if (searchResult.getInstance() == dokument.getÅtgärd()) {
+                  åtgärd = searchResult;
+                }
+                if (searchResult.getInstance() == dokument.getÅtgärd().getÄrende()) {
+                  ärende = searchResult;
+                }
+              }
+              if (åtgärd != null) {
+                group.searchResults.remove(åtgärd);
+                group.searchResults.remove(ärende);
+              } else {
+                åtgärd = new SearchResult();
+                åtgärd.setScore(0f);
+                åtgärd.setInstance(dokument.getÅtgärd());
+                ärende = new SearchResult();
+                ärende.setScore(0f);
+                ärende.setInstance(dokument.getÅtgärd());
+              }
+
+
+              group.searchResults.add(1, åtgärd);
+              group.searchResults.add(2, ärende);
+
+            }
+            return null;
+          }
+        });
+
+
         JSONObject groupJSON = new JSONObject();
         groupsJSON.put(groupJSON);
         groupJSON.put("root", group.root.getIdentity());
@@ -495,6 +594,7 @@ public class SearchServlet extends JSONPostService {
       timerStarted = System.currentTimeMillis();
       JSONArray instancesJSON = new JSONArray(new ArrayList(instances.size()));
       responseJSON.put("instances", instancesJSON);
+      instances.remove(null); // we might have added null values..
       for (Identitfiable instance : instances) {
         instancesJSON.put(instance.accept(getInstanceJSON));
       }

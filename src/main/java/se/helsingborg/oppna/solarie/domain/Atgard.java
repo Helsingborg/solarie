@@ -20,6 +20,8 @@ public class Atgard implements Identitfiable, Indexable {
 
   private Long registrerad;
 
+  private Long inkom;
+  private Long utgick;
 
   private String text;
 
@@ -103,5 +105,21 @@ public class Atgard implements Identitfiable, Indexable {
 
   public void setRegistrerad(Long registrerad) {
     this.registrerad = registrerad;
+  }
+
+  public Long getInkom() {
+    return inkom;
+  }
+
+  public void setInkom(Long inkom) {
+    this.inkom = inkom;
+  }
+
+  public Long getUtgick() {
+    return utgick;
+  }
+
+  public void setUtgick(Long utgick) {
+    this.utgick = utgick;
   }
 }

@@ -25,6 +25,8 @@ import java.util.Set;
  */
 public class DiarierFacet extends FacetDefinition {
 
+  private static String fieldName = "facet diarier";
+
   public DiarierFacet() {
 
   }
@@ -51,7 +53,7 @@ public class DiarierFacet extends FacetDefinition {
             @Override
             public JSONObject toJSON() throws JSONException {
               JSONObject facetValueJSON = super.toJSON();
-              facetValueJSON.put("query", new JSONObject(new JSONTokener("{ 'type': 'term', 'field': 'facet diarier', 'value': '" + diarium.getIdentity() + "' }")));
+              facetValueJSON.put("query", new JSONObject(new JSONTokener("{ 'type': 'term', 'field': '"+fieldName+"', 'value': '" + diarium.getIdentity() + "' }")));
               return facetValueJSON;
 
             }
@@ -66,8 +68,9 @@ public class DiarierFacet extends FacetDefinition {
 
   @Override
   public void addFields(Document document, Indexable indexable) {
-      document.add(new StringField("facet diarium", String.valueOf(indexable.accept(GetDiarium.getInstance()).getIdentity()), Field.Store.NO));
+      document.add(new StringField(fieldName, String.valueOf(indexable.accept(GetDiarium.getInstance()).getIdentity()), Field.Store.NO));
   }
+
 
 
 

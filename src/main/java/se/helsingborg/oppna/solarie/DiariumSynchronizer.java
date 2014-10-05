@@ -271,6 +271,9 @@ public class DiariumSynchronizer {
         .append(",agare_usrsign")
         .append(",reg_dat")
 
+        .append(",ink_dat")
+        .append(",utg_dat")
+
 
         .append(" FROM atgard ")
 
@@ -290,7 +293,7 @@ public class DiariumSynchronizer {
           Diarienummer diarienummer = diarienummerFactory(rs.getString("diarienr"));
           short åtgärdsnummer = rs.getShort("atgardsnr");
 
-          log.debug("Läser in åtgärd #" + åtgärdsnummer + " i ärende med facet_diarienummer " + diarienummer.toString());
+          log.debug("Läser in åtgärd #" + åtgärdsnummer + " i ärende med diarienummer " + diarienummer.toString());
 
 
           // Ärende must be created in case it was added in database after we iterated them above.
@@ -302,13 +305,24 @@ public class DiariumSynchronizer {
 
           Atgard åtgärd = Solarie.getInstance().getPrevayler().execute(new GetAtgardByDiarienummerAndAtgardsnummer(diarium, diarienummer, åtgärdsnummer));
           if (åtgärd == null) {
-            log.info("Skapar åtgärd #" + åtgärdsnummer + " i ärende med facet_diarienummer " + diarienummer.toString());
+            log.info("Skapar åtgärd #" + åtgärdsnummer + " i ärende med diarienummer " + diarienummer.toString());
             åtgärd = Solarie.getInstance().getPrevayler().execute(new CreateAtgard(ärende, åtgärdsnummer));
             dirtyIndexables.add(åtgärd);
           }
 
           // update delta
 
+          Long inkom = getTimestamp(rs, "ink_dat");
+          if (!Equals.equals(inkom, åtgärd.getInkom())) {
+            Solarie.getInstance().getPrevayler().execute(new SetAtgardInkom(åtgärd, inkom));
+            dirtyIndexables.add(åtgärd);
+          }
+
+          Long utgick = getTimestamp(rs, "utg_dat");
+          if (!Equals.equals(utgick, åtgärd.getUtgick())) {
+            Solarie.getInstance().getPrevayler().execute(new SetAtgardUtgick(åtgärd, utgick));
+            dirtyIndexables.add(åtgärd);
+          }
 
           String text = rs.getString("atgard_text");
           if (!Equals.equals(text, åtgärd.getText())) {

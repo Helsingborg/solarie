@@ -23,6 +23,8 @@ import java.util.Set;
  */
 public class EnheterFacet extends FacetDefinition {
 
+  private static String fieldName = "facet enheter";
+
 
   public EnheterFacet() {
 
@@ -33,7 +35,7 @@ public class EnheterFacet extends FacetDefinition {
     GatherEnheter gatherEnheter = new GatherEnheter();
     indexable.accept(gatherEnheter);
     for (Enhet enhet : gatherEnheter.getEnheterna()) {
-      document.add(new StringField("facet enheter", String.valueOf(enhet.getIdentity()), Field.Store.NO));
+      document.add(new StringField(fieldName, valueFactory(enhet), Field.Store.NO));
     }
   }
 
@@ -48,13 +50,17 @@ public class EnheterFacet extends FacetDefinition {
           searchResult.getInstance().accept(gatherEnheter);
         }
 
+        Set<String> facetValues = new HashSet<>();
+        for (Enhet enhet : gatherEnheter.getEnheterna()) {
+          facetValues.add(valueFactory(enhet));
+        }
 
-        List<FacetValue> values = new ArrayList<>(gatherEnheter.getEnheterna().size());
-        for (final Enhet enhet : gatherEnheter.getEnheterna()) {
+        List<FacetValue> values = new ArrayList<>(facetValues.size());
+        for (final String facetValue : facetValues) {
 
-          final MatchesVisitor matcher = new MatchesVisitor(enhet);
+          final MatchesVisitor matcher = new MatchesVisitor(facetValue);
 
-          values.add(new FacetValue(searchResults, enhet.getNamn() == null ? enhet.getKod() : enhet.getNamn()) {
+          values.add(new FacetValue(searchResults, facetValue) {
 
             @Override
             public boolean matches(SearchResult searchResult) {
@@ -64,7 +70,7 @@ public class EnheterFacet extends FacetDefinition {
             @Override
             public JSONObject toJSON() throws JSONException {
               JSONObject facetValueJSON = super.toJSON();
-              facetValueJSON.put("query", new JSONObject(new JSONTokener("{ 'type': 'term', 'field': 'facet enheter', 'value': '" + enhet.getIdentity() + "' }")));
+              facetValueJSON.put("query", new JSONObject(new JSONTokener("{ 'type': 'term', 'field': '"+fieldName+"', 'value': '" + facetValue + "' }")));
               return facetValueJSON;
 
             }
@@ -115,29 +121,36 @@ public class EnheterFacet extends FacetDefinition {
 
   private class MatchesVisitor extends IndexableVisitor<Boolean> {
 
-    private Enhet enhet;
+    private String value;
 
-    private MatchesVisitor(Enhet enhet) {
-      this.enhet = enhet;
+    private MatchesVisitor(String value) {
+      this.value = value;
     }
 
     @Override
     public Boolean visit(Arende ärende) {
-      return enhet.equals(ärende.getEnhet());
+      return value.equals(valueFactory(ärende.getEnhet()));
     }
 
     @Override
     public Boolean visit(Atgard åtgärd) {
-      return enhet.equals(åtgärd.getEnhet());
+      return value.equals(valueFactory(åtgärd.getEnhet()));
     }
 
     @Override
     public Boolean visit(Dokument dokument) {
       if (dokument.getÅtgärd() != null) {
-        return enhet.equals(dokument.getÅtgärd().getEnhet());
+        return value.equals(valueFactory(dokument.getÅtgärd().getEnhet()));
       }
       return false;
     }
+  }
+
+  private String valueFactory(Enhet enhet) {
+    if (enhet == null) {
+      return null;
+    }
+    return enhet.getNamn() == null ? enhet.getKod() : enhet.getNamn();
   }
 
 
