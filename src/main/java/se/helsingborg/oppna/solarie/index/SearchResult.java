@@ -10,7 +10,7 @@ import se.helsingborg.oppna.solarie.domain.Indexable;
 public class SearchResult {
 
   private Float score;
-  private Indexable indexable;
+  private Indexable instance;
   private Explanation explanation;
 
   public Explanation getExplanation() {
@@ -29,11 +29,11 @@ public class SearchResult {
     this.score = score;
   }
 
-  public Indexable getIndexable() {
-    return indexable;
+  public Indexable getInstance() {
+    return instance;
   }
 
-  public void setIndexable(Indexable indexable) {
-    this.indexable = indexable;
+  public void setInstance(Indexable instance) {
+    this.instance = instance;
   }
 }

@@ -272,7 +272,7 @@ public class SolarieIndex {
           Long identity = identityDocValues.get(doc);
           Indexable indexable = (Indexable) Solarie.getInstance().getPrevayler().prevalentSystem().getIdentifiables().get(identity);
 
-          searchResult.setIndexable(indexable);
+          searchResult.setInstance(indexable);
 
           if (score) {
             searchResult.setScore(scorer.score());
@@ -318,4 +318,5 @@ public class SolarieIndex {
   public Set<FacetDefinition> getFacets() {
     return facets;
   }
+
 }

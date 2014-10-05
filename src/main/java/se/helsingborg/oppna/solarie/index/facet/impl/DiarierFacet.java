@@ -37,7 +37,7 @@ public class DiarierFacet extends FacetDefinition {
 
         Set<Diarium> diarier = new HashSet<>();
         for (SearchResult searchResult : searchResults) {
-          diarier.add(searchResult.getIndexable().accept(GetDiarium.getInstance()));
+          diarier.add(searchResult.getInstance().accept(GetDiarium.getInstance()));
         }
         List<FacetValue> facetValues = new ArrayList<>(diarier.size());
         for (final Diarium diarium : diarier) {
@@ -45,7 +45,7 @@ public class DiarierFacet extends FacetDefinition {
 
             @Override
             public boolean matches(SearchResult searchResult) {
-              return searchResult.getIndexable().accept(GetDiarium.getInstance()).equals(diarium);
+              return searchResult.getInstance().accept(GetDiarium.getInstance()).equals(diarium);
             }
 
             @Override

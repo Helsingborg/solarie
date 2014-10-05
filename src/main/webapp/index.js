@@ -88,7 +88,6 @@ function search() {
       request,
       function success(response) {
 
-
         $('#search_results').html("");
 
         $('#reponse_length').text(response.length);
@@ -121,10 +120,22 @@ function search() {
 
         }
 
-
+        // set instances
+        instances = {};
         for (var index = 0; index < response.instances.length; index++) {
           setInstance(response.instances[index]);
         }
+        for (var identity in instances) {
+          var instance = instances[identity];
+          if (typeof instance.ärende === 'number') {
+            instance.ärende = getInstance(instance.ärende);
+          }
+          if (typeof instance.åtgärd === 'number') {
+            instance.åtgärd = getInstance(instance.åtgärd);
+          }
+        }
+
+
 
         for (var index = 0; index < response.items.length; index++) {
 
@@ -146,7 +157,7 @@ function search() {
           } else if (item.type === "Atgard") {
             typeText = "Åtgärd";
             html += "<span class='search_result_type'>" + typeText + "</span>";
-            html += "<span class='search_result_atgard_arende'>Del av ärendet <span style='font-style: italic'>" + getInstance(item.instance.ärende).mening + "</span></span>";
+            html += "<span class='search_result_atgard_arende'>Del av ärendet <span style='font-style: italic'>" + item.instance.ärende.mening + "</span></span>";
           } else if (item.type === "Dokument") {
             typeText = "Dokument";
             html += "<span class='search_result_type'>" + typeText + "</span>";

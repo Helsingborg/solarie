@@ -43,7 +43,7 @@ public class AnvandareFacet extends FacetDefinition {
       protected List<FacetValue> valuesFactory(List<SearchResult> searchResults) {
         GatherAnvandare gatherAnvandare = new GatherAnvandare();
         for (SearchResult searchResult : searchResults) {
-          searchResult.getIndexable().accept(gatherAnvandare);
+          searchResult.getInstance().accept(gatherAnvandare);
         }
 
         List<FacetValue> values = new ArrayList<>(gatherAnvandare.getAnvändarna().size());
@@ -55,7 +55,7 @@ public class AnvandareFacet extends FacetDefinition {
 
             @Override
             public boolean matches(SearchResult searchResult) {
-              return searchResult.getIndexable().accept(matcher);
+              return searchResult.getInstance().accept(matcher);
             }
 
             @Override

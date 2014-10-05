@@ -10,9 +10,6 @@ import se.helsingborg.oppna.solarie.index.JSONQueryUnmarshaller;
 import se.helsingborg.oppna.solarie.index.SearchResult;
 import se.helsingborg.oppna.solarie.index.facet.Facet;
 import se.helsingborg.oppna.solarie.index.facet.FacetDefinition;
-import se.helsingborg.oppna.solarie.index.facet.impl.AnvandareFacet;
-import se.helsingborg.oppna.solarie.index.facet.impl.DiarierFacet;
-import se.helsingborg.oppna.solarie.index.facet.impl.EnheterFacet;
 import se.helsingborg.oppna.solarie.index.visitors.GetDiarienummer;
 import se.helsingborg.oppna.solarie.index.visitors.GetDiarium;
 import se.helsingborg.oppna.solarie.util.JSONObject;
@@ -90,142 +87,32 @@ public class SearchServlet extends JSONPostService {
 
   @Override
   public void doProcess(HttpServletRequest request, HttpServletResponse response, JSONObject requestJSON, JSONObject responseJSON) throws Exception {
+    new Searcher().doProcess(request, response, requestJSON, responseJSON);
+  }
 
-    org.json.JSONObject timersJSON = responseJSON.getJSONObject("timers");
+  private class Group {
 
-    // parse request
-    long timerStarted = System.currentTimeMillis();
-    if (requestJSON.has("reference")) {
-      responseJSON.put("reference", requestJSON.get("reference"));
+    private Group(Indexable root) {
+      this.root = root;
     }
-    Query query = !requestJSON.has("query") ? new MatchAllDocsQuery() : new JSONQueryUnmarshaller().parseJsonQuery(requestJSON.getJSONObject("query"));
-    boolean score = requestJSON.getBoolean("score", true);
-    boolean explain = requestJSON.getBoolean("explain", false);
-    timersJSON.put("parse", System.currentTimeMillis() - timerStarted);
 
-    // collect search results
-    timerStarted = System.currentTimeMillis();
-    final List<SearchResult> searchResults = Solarie.getInstance().getIndex().search(query, score, explain);
-    responseJSON.put("length", searchResults.size());
-    timersJSON.put("collect", System.currentTimeMillis() - timerStarted);
+    private Float bestScore;
+    private Indexable root;
+    private List<SearchResult> searchResults;
 
-    // create facets
-    timerStarted = System.currentTimeMillis();
-
-    final JSONArray facetsJSON = new JSONArray();
-    responseJSON.put("facets", facetsJSON);
-
-    List<FacetDefinition> facets = new ArrayList<>(Solarie.getInstance().getIndex().getFacets());
-    Thread[] facetThreads = new Thread[facets.size()];
-    for (int i = 0; i < facets.size(); i++) {
-      final Facet facet = facets.get(i).facetFactory();
-      facetThreads[i] = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          facet.populate(searchResults);
-          if (!facet.getValues().isEmpty()) {
-            try {
-            facetsJSON.put(facet.toJSON());
-            } catch (Exception e) {
-              log.error("Exception while creating JSON for facet " + facet.getName(), e);
-            }
-          }
+    private void addSearchResult(SearchResult searchResult) {
+      if (searchResults == null) {
+        searchResults = new ArrayList<>(25);
+      }
+      searchResults.add(searchResult);
+      if (searchResult.getScore() != null) {
+        if (bestScore == null) {
+          bestScore = searchResult.getScore();
+        } else if (bestScore < searchResult.getScore()) {
+          bestScore = searchResult.getScore();
         }
-      });
-      facetThreads[i].setDaemon(true);
-      facetThreads[i].start();
-    }
-
-    for (Thread thread : facetThreads) {
-      thread.join();
-    }
-
-    timersJSON.put("create_facets", System.currentTimeMillis() - timerStarted);
-
-
-    // sort order
-    timerStarted = System.currentTimeMillis();
-    if (requestJSON.has("sortOrder")) {
-      Comparator<SearchResult> sortOrder = sortOrders.get(requestJSON.getString("sortOrder"));
-      if (sortOrder == null) {
-        throw new RuntimeException("Unsupported sort order: " + requestJSON.getString("sortOrder"));
-      } else {
-        Collections.sort(searchResults, sortOrder);
       }
     }
-    timersJSON.put("sort", System.currentTimeMillis() - timerStarted);
-
-
-    // select search results to display
-    timerStarted = System.currentTimeMillis();
-    int offset = requestJSON.getInt("offset", 0);
-    int length = requestJSON.getInt("length", 100);
-
-    int end = offset + length;
-    int total = searchResults.size();
-
-    JSONArray itemsJSON = new JSONArray();
-    responseJSON.put("items", itemsJSON);
-
-    final Set<Indexable> instances = new HashSet<>(length * 3);
-    IndexableVisitor<Void> gatherInstances = new IndexableVisitor<Void>() {
-      @Override
-      public Void visit(Arende ärende) {
-        instances.add(ärende);
-
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
-      }
-
-      @Override
-      public Void visit(Atgard åtgärd) {
-        instances.add(åtgärd);
-        visit(åtgärd.getÄrende());
-
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
-      }
-
-      @Override
-      public Void visit(Dokument dokument) {
-        instances.add(dokument);
-        if (dokument.getÅtgärd() != null) {
-          visit(dokument.getÅtgärd());
-        }
-
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
-      }
-    };
-
-
-    GetInstanceJSON getInstanceJSON = new SearchServlet.GetInstanceJSON();
-
-    for (int index = offset; index < end && index < total; index++) {
-      SearchResult searchResult = searchResults.get(index);
-      JSONObject searchResultJSON = new JSONObject(new LinkedHashMap<>(10));
-      itemsJSON.put(searchResultJSON);
-
-      searchResultJSON.put("index", index);
-      if (score) {
-        searchResultJSON.put("score", searchResult.getScore());
-      }
-      if (explain) {
-        // todo as JSON
-        searchResultJSON.put("explanation", searchResult.getExplanation().toHtml());
-      }
-      searchResultJSON.put("type", searchResult.getIndexable().getClass().getSimpleName());
-      searchResultJSON.put("instance", searchResult.getIndexable().getIdentity());
-
-      searchResult.getIndexable().accept(gatherInstances);
-
-    }
-
-    JSONArray instancesJSON = new JSONArray(new ArrayList(instances.size()));
-    responseJSON.put("instances", instancesJSON);
-    for (Indexable instance : instances) {
-      instancesJSON.put(instance.accept(getInstanceJSON));
-    }
-
-    timersJSON.put("assemble", System.currentTimeMillis() - timerStarted);
-
   }
 
   private class GetInstanceJSON implements IndexableVisitor<JSONObject> {
@@ -286,4 +173,248 @@ public class SearchServlet extends JSONPostService {
       }
     }
   }
+
+  private class Searcher {
+
+    private boolean score;
+    private boolean explain;
+
+    private int offset;
+    private int length;
+
+    private int end;
+
+    private Set<Indexable> instances = new HashSet<>(length * 3);
+    IndexableVisitor<Void> gatherInstances = new IndexableVisitor<Void>() {
+      @Override
+      public Void visit(Arende ärende) {
+        instances.add(ärende);
+        return null;  
+      }
+
+      @Override
+      public Void visit(Atgard åtgärd) {
+        instances.add(åtgärd);
+        visit(åtgärd.getÄrende());
+        return null;  
+      }
+
+      @Override
+      public Void visit(Dokument dokument) {
+        instances.add(dokument);
+        if (dokument.getÅtgärd() != null) {
+          visit(dokument.getÅtgärd());
+        }
+
+        return null;  
+      }
+    };
+
+
+    public void doProcess(HttpServletRequest request, HttpServletResponse response, JSONObject requestJSON, JSONObject responseJSON) throws Exception {
+
+      org.json.JSONObject timersJSON = responseJSON.getJSONObject("timers");
+
+      // parse request
+      long timerStarted = System.currentTimeMillis();
+      if (requestJSON.has("reference")) {
+        responseJSON.put("reference", requestJSON.get("reference"));
+      }
+      Query query = !requestJSON.has("query") ? new MatchAllDocsQuery() : new JSONQueryUnmarshaller().parseJsonQuery(requestJSON.getJSONObject("query"));
+      score = requestJSON.getBoolean("score", true);
+      explain = requestJSON.getBoolean("explain", false);
+
+      offset = requestJSON.getInt("offset", 0);
+      length = requestJSON.getInt("length", 100);
+
+      end = offset + length;
+      timersJSON.put("parse", System.currentTimeMillis() - timerStarted);
+
+      // collect search results
+      timerStarted = System.currentTimeMillis();
+      final List<SearchResult> searchResults = Solarie.getInstance().getIndex().search(query, score, explain);
+      responseJSON.put("length", searchResults.size());      
+      timersJSON.put("collect", System.currentTimeMillis() - timerStarted);
+
+      // create facets
+      timerStarted = System.currentTimeMillis();
+
+      final JSONArray facetsJSON = new JSONArray();
+      responseJSON.put("facets", facetsJSON);
+
+      List<FacetDefinition> facets = new ArrayList<>(Solarie.getInstance().getIndex().getFacets());
+      Thread[] facetThreads = new Thread[facets.size()];
+      for (int i = 0; i < facets.size(); i++) {
+        final Facet facet = facets.get(i).facetFactory();
+        facetThreads[i] = new Thread(new Runnable() {
+          @Override
+          public void run() {
+            facet.populate(searchResults);
+            if (!facet.getValues().isEmpty()) {
+              try {
+                facetsJSON.put(facet.toJSON());
+              } catch (Exception e) {
+                log.error("Exception while creating JSON for facet " + facet.getName(), e);
+              }
+            }
+          }
+        });
+        facetThreads[i].setDaemon(true);
+        facetThreads[i].start();
+      }
+
+      for (Thread thread : facetThreads) {
+        thread.join();
+      }
+
+      timersJSON.put("create_facets", System.currentTimeMillis() - timerStarted);
+
+
+      // sort order
+      timerStarted = System.currentTimeMillis();
+      Comparator<SearchResult> sortOrder = null;
+      if (requestJSON.has("sortOrder")) {
+        sortOrder = sortOrders.get(requestJSON.getString("sortOrder"));
+        if (sortOrder == null) {
+          throw new RuntimeException("Unsupported sort order: " + requestJSON.getString("sortOrder"));
+        } else {
+          Collections.sort(searchResults, sortOrder);
+        }
+      }
+      timersJSON.put("sort", System.currentTimeMillis() - timerStarted);
+
+
+      GetInstanceJSON getInstanceJSON = new SearchServlet.GetInstanceJSON();
+
+
+      // select search results to display
+      timerStarted = System.currentTimeMillis();
+
+      JSONArray itemsJSON = new JSONArray();
+      responseJSON.put("items", itemsJSON);
+
+      for (int index = offset; index < end && index < searchResults.size(); index++) {
+        SearchResult searchResult = searchResults.get(index);
+        itemsJSON.put(toJSON(index, searchResult));
+      }
+
+
+      timersJSON.put("assemble", System.currentTimeMillis() - timerStarted);
+
+
+      // groups results
+      timerStarted = System.currentTimeMillis();
+      IndexableVisitor<Indexable> getGroupVisitor = new IndexableVisitor<Indexable>() {
+        @Override
+        public Indexable visit(Arende ärende) {
+          return ärende;
+        }
+
+        @Override
+        public Indexable visit(Atgard åtgärd) {
+          return åtgärd.getÄrende();
+        }
+
+        @Override
+        public Indexable visit(Dokument dokument) {
+          if (dokument.getÅtgärd() != null) {
+            return visit(dokument.getÅtgärd());
+          }
+          return dokument;
+        }
+      };
+
+      Map<Indexable, SearchResult> searchResultsByIndexable = new HashMap<>(searchResults.size());
+      for (SearchResult searchResult : searchResults) {
+        searchResultsByIndexable.put(searchResult.getInstance(), searchResult);
+      }
+
+      Map<Indexable, Group> groups = new HashMap<>(instances.size());
+      for (SearchResult searchResult : searchResults) {
+        Indexable root = searchResult.getInstance().accept(getGroupVisitor);
+        Group group = groups.get(root);
+        if (group == null) {
+          group = new Group(root);
+          groups.put(root, group);
+        }
+        group.addSearchResult(searchResult);
+      }
+
+      JSONArray groupsJSON = new JSONArray(new ArrayList(groups.size()));
+      responseJSON.put("groups", groupsJSON);
+
+      if (sortOrder != null) {
+        for (Group group : groups.values()) {
+          if (group.searchResults != null) {
+            Collections.sort(group.searchResults, sortOrder);
+          }
+        }
+      }
+
+      List<Group> orderdGroups = new ArrayList<>(groups.values());
+      if (sortOrder != null) {
+        final Comparator<SearchResult> finalSortOrder = sortOrder;
+        Collections.sort(orderdGroups, new Comparator<Group>() {
+          @Override
+          public int compare(Group o1, Group o2) {
+            return finalSortOrder.compare(o1.searchResults.get(0), o2.searchResults.get(0));
+          }
+        });
+      }
+
+
+      for (int groupIndex = offset; groupIndex < end && groupIndex < orderdGroups.size(); groupIndex++) {
+        Group group = orderdGroups.get(groupIndex);
+        JSONObject groupJSON = new JSONObject();
+        groupsJSON.put(groupJSON);
+        groupJSON.put("bestScore", group.bestScore);
+        groupJSON.put("root", group.root.getIdentity());
+        JSONArray groupSearchResultsJSON = new JSONArray();
+        groupJSON.put("searchResults", groupSearchResultsJSON);
+        List<SearchResult> groupSearchResults = group.searchResults;
+        for (int groupSearchResultsIndex = 0; groupSearchResultsIndex < groupSearchResults.size(); groupSearchResultsIndex++) {
+          SearchResult searchResult = groupSearchResults.get(groupSearchResultsIndex);
+          groupSearchResultsJSON.put(toJSON(groupSearchResultsIndex, searchResult));
+          searchResult.getInstance().accept(gatherInstances);
+        }
+      }
+
+
+      timersJSON.put("group", System.currentTimeMillis() - timerStarted);
+
+
+      // instances
+      timerStarted = System.currentTimeMillis();
+      JSONArray instancesJSON = new JSONArray(new ArrayList(instances.size()));
+      responseJSON.put("instances", instancesJSON);
+      for (Indexable instance : instances) {
+        instancesJSON.put(instance.accept(getInstanceJSON));
+      }
+      timersJSON.put("instances", System.currentTimeMillis() - timerStarted);
+
+
+
+    }
+
+    private JSONObject toJSON(int index, SearchResult searchResult) throws JSONException {
+      
+      JSONObject searchResultJSON = new JSONObject(new LinkedHashMap<>(10));
+
+      searchResultJSON.put("index", index);
+      if (score) {
+        searchResultJSON.put("score", searchResult.getScore());
+      }
+      if (explain) {
+        // todo as JSON
+        searchResultJSON.put("explanation", searchResult.getExplanation().toHtml());
+      }
+      searchResultJSON.put("type", searchResult.getInstance().getClass().getSimpleName());
+      searchResultJSON.put("instance", searchResult.getInstance().getIdentity());
+
+      searchResult.getInstance().accept(gatherInstances);
+      return searchResultJSON;
+    }
+
+  }
+
 }

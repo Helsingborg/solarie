@@ -45,7 +45,7 @@ public class EnheterFacet extends FacetDefinition {
       protected List<FacetValue> valuesFactory(List<SearchResult> searchResults) {
         GatherEnheter gatherEnheter = new GatherEnheter();
         for (SearchResult searchResult : searchResults) {
-          searchResult.getIndexable().accept(gatherEnheter);
+          searchResult.getInstance().accept(gatherEnheter);
         }
 
 
@@ -58,7 +58,7 @@ public class EnheterFacet extends FacetDefinition {
 
             @Override
             public boolean matches(SearchResult searchResult) {
-              return searchResult.getIndexable().accept(matcher);
+              return searchResult.getInstance().accept(matcher);
             }
 
             @Override
