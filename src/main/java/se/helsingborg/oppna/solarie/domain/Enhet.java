@@ -29,6 +29,11 @@ public class Enhet implements Identitfiable, DiariumBound {
   private List<Arende> ärenden = new ArrayList<>(1000);
   private List<Atgard> åtgärder = new ArrayList<>(1000);
 
+  @Override
+  public <R> R accept(IdentifiableVisitor<R> visitor) {
+    return visitor.visit(this);
+  }
+
   // getters and setters
 
   @Override

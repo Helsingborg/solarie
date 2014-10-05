@@ -8,6 +8,8 @@ import java.io.Serializable;
  */
 public interface Identitfiable extends Serializable {
 
+  public abstract <R> R accept(IdentifiableVisitor<R> visitor);
+
   public abstract Long getIdentity();
   public abstract void setIdentity(Long identity);
 

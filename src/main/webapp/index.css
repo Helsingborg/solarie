@@ -3,6 +3,10 @@ html, body, div, span, textarea, button, input, table, tr, td {
   font-size: 13px
 }
 
+div, span, td, tr {
+  vertical-align: top;
+}
+
 input, button {
   font-size: 20px;
 }
@@ -15,7 +19,7 @@ html, body {
 }
 
 #query {
-  width: 12em;
+  width: 24em;
 }
 
 .link {
@@ -41,15 +45,47 @@ html, body {
 }
 
 .search_result_diarienummer {
-  padding-right: 2em;
   font-weight: bold;
+}
+
+.search_result_diarium {
+  padding-left: 0.75em;
+  padding-right: 0.75em;
+}
+
+.search_result_group_item {
+  padding-left: 4em;
+}
+
+.search_result_type {
+  padding-left: 0.75em;
+  padding-right: 0.75em;
+  text-decoration: underline;
+}
+.search_result_timestamp {
+  padding-left: 0.75em;
+  padding-right: 0.75em;
 }
 .search_result_title {
   text-decoration: underline;
   font-size: large;
 }
-.search_result_type {
-  padding-right: 2em;
-  text-decoration: underline;
+
+.search_result_group_item_type {
+  font-weight: bold;
+  padding-left: 0.75em;
+  padding-right: 0.75em;
+
 }
 
+.search_result_group_item_title {
+  padding-left: 0.75em;
+  padding-right: 0.75em;
+  width: 50em;
+}
+
+.search_result_group_item_score {
+  padding-left: 0.75em;
+  padding-right: 0.75em;
+  width: 50em;
+}

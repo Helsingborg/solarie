@@ -10,6 +10,7 @@
   <title>Solarie</title>
 
   <script src="lib/jquery-2.1.1.min.js" type="text/javascript"></script>
+  <script src="lib/jquery-dateFormat.js" type="text/javascript"></script>
   <script src="solarie-0.0.1-src.js" type="text/javascript"></script>
   <script src="index.js" type="text/javascript"></script>
 
@@ -21,16 +22,30 @@
 <table style="width: 100%;">
   <tr>
     <td>
+      <table style="width: 100%">
+        <tr>
+          <td id="response_length" style="height:1em; text-align: right">
+            Laddar in alla objekt i omvänd kronologisk ordning…
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: center">
+            <input id="query" type="text"/>
+            <button id="search">Sök</button>
+          </td>
+        </tr>
+      </table>
       <div id="header">
+
         <div style="height: 50px;"></div>
-        <div style="width: 100%; text-align: center"><input id="query" type="text" value="test"/>
-          <button id="search">Sök</button>
+        <div style="width: 100%; text-align: center">
         </div>
         <div style="width: 100%; text-align: center; display: none;" id="response_information">
-          <span id="reponse_length"></span> träffar på <span id="response_timers_total"></span> sekunder.
+
         </div>
-        <div style="height: 50px;"></div>
+        <div style="height: 1em;"></div>
         <div style="width: 100%; text-align: center" id="active_facets"></div>
+        <div style="height: 1em;"></div>
       </div>
     </td>
   </tr>

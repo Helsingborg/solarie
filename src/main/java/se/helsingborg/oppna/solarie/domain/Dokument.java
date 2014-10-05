@@ -9,7 +9,7 @@ public class Dokument implements Identitfiable, DiariumBound, Indexable {
   private static final long serialVersionUID = 1l;
 
   @Override
-  public <R> R accept(IndexableVisitor<R> visitor) {
+  public <R> R accept(IdentifiableVisitor<R> visitor) {
     return visitor.visit(this);
   }
 

@@ -74,7 +74,7 @@ public class AnvandareFacet extends FacetDefinition {
   }
 
 
-  private class GatherAnvandare implements IndexableVisitor<Void> {
+  private class GatherAnvandare extends IndexableVisitor<Void> {
     private Set<Anvandare> användarna = new HashSet<>();
 
     @Override
@@ -112,7 +112,7 @@ public class AnvandareFacet extends FacetDefinition {
     }
   }
 
-  private class MatchesVisitor implements IndexableVisitor<Boolean> {
+  private class MatchesVisitor extends IndexableVisitor<Boolean> {
 
     private Anvandare användare;
 

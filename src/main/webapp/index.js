@@ -5,6 +5,9 @@ var selectedFacets = [];
 
 var instances = {};
 function getInstance(identity) {
+  if (!identity) {
+    console.log("null!");
+  }
   return instances[identity.toString()];
 }
 function setInstance(instance) {
@@ -32,6 +35,7 @@ $(function onLoad() {
     search();
   };
 
+  search();
 
 });
 
@@ -72,9 +76,10 @@ function search() {
         type: 'match all documents'
       }
     });
+    request.sortOrder = 'timestamp';
   } else {
     request.query.clauses.push({
-      occur: 'should',
+      occur: 'must',
       query: {
         type: 'boolean analyzed text should',
         field: 'text',
@@ -90,12 +95,12 @@ function search() {
 
         $('#search_results').html("");
 
-        $('#reponse_length').text(response.length);
 
         var sekunder = (response.timers.total / 1000).toString();
         sekunder = sekunder.substring(0, Math.min(sekunder.length, 5));
         sekunder = sekunder.replace(".", ",");
-        $('#response_timers_total').text(sekunder);
+
+        $('#response_length').text(response.length + ' träffar på ' + sekunder + ' sekunder');
 
         $('#response_information').css('display', 'block');
 
@@ -125,6 +130,7 @@ function search() {
         for (var index = 0; index < response.instances.length; index++) {
           setInstance(response.instances[index]);
         }
+        // couple instances
         for (var identity in instances) {
           var instance = instances[identity];
           if (typeof instance.ärende === 'number') {
@@ -133,67 +139,162 @@ function search() {
           if (typeof instance.åtgärd === 'number') {
             instance.åtgärd = getInstance(instance.åtgärd);
           }
+          if (typeof instance.diarium === 'number') {
+            instance.diarium = getInstance(instance.diarium);
+          }
         }
 
 
+        function renderSearchResults() {
+          for (var index = 0; index < response.items.length; index++) {
 
-        for (var index = 0; index < response.items.length; index++) {
+            response.items[index].instance = getInstance(response.items[index].instance);
 
-          // instance verkar inte sättas i item?
+            var item = response.items[index];
 
-          response.items[index].instance = getInstance(response.items[index].instance);
+            var html = "<div class='search_result' id='search_result_" + item.index + "'>";
 
-          var item = response.items[index];
+            html += "<div>";
 
-          var html = "<div class='search_result' id='search_result_" + item.index + "'>";
+            html += "<span class='search_result_diarienummer'>" + item.instance.diarienummer + "</span>";
 
-          html += "<div>";
-          html += "<span class='search_result_diarienummer'>" + item.instance.diarienummer + "</span>";
+            var typeText;
+            if (item.type === "Arende") {
+              typeText = "Ärende";
+              html += "<span class='search_result_type'>" + typeText + "</span>";
+            } else if (item.type === "Atgard") {
+              typeText = "Åtgärd";
+              html += "<span class='search_result_type'>" + typeText + "</span>";
+              html += "<span class='search_result_atgard_arende'>Del av ärendet <span style='font-style: italic'>" + item.instance.ärende.mening + "</span></span>";
+            } else if (item.type === "Dokument") {
+              typeText = "Dokument";
+              html += "<span class='search_result_type'>" + typeText + "</span>";
+            } else {
+              typeText = item.type;
+              html += "<span class='search_result_type'>" + typeText + "</span>";
+            }
 
-          var typeText;
-          if (item.type === "Arende") {
-            typeText = "Ärende";
-            html += "<span class='search_result_type'>" + typeText + "</span>";
-          } else if (item.type === "Atgard") {
-            typeText = "Åtgärd";
-            html += "<span class='search_result_type'>" + typeText + "</span>";
-            html += "<span class='search_result_atgard_arende'>Del av ärendet <span style='font-style: italic'>" + item.instance.ärende.mening + "</span></span>";
-          } else if (item.type === "Dokument") {
-            typeText = "Dokument";
-            html += "<span class='search_result_type'>" + typeText + "</span>";
-          } else {
-            typeText = item.type;
-            html += "<span class='search_result_type'>" + typeText + "</span>";
+
+            html += "</div>";
+
+
+            html += "<div class='search_result_title'>";
+            if (item.type === "Arende") {
+              html += item.instance.mening;
+            } else if (item.type === "Atgard") {
+              html += item.instance.text;
+            } else if (item.type === "Dokument") {
+              html += item.instance.text;
+            } else {
+              html += typeText + " utan titel";
+            }
+            html += "</div>";
+
+
+            if (item.explaination !== undefined) {
+              html += "<br/>";
+              html += item.explanation;
+            }
+
+            html += "</div>";
+
+            html += "<div style='height: 10;'></div>";
+
+            $(html).appendTo('#search_results');
           }
-
-
-          html += "</div>";
-
-
-          html += "<div class='search_result_title'>";
-          if (item.type === "Arende") {
-            html += item.instance.mening;
-          } else if (item.type === "Atgard") {
-            html += item.instance.text;
-          } else if (item.type === "Dokument") {
-            html += item.instance.text;
-          } else {
-            html += typeText + " utan titel";
-          }
-          html += "</div>";
-
-
-          if (item.explaination !== undefined) {
-            html += "<br/>";
-            html += item.explanation;
-          }
-
-          html += "</div>";
-
-          html += "<div style='height: 10;'></div>";
-
-          $(html).appendTo('#search_results');
         }
+
+        function renderGroups() {
+          for (var index = 0; index < response.groups.length; index++) {
+
+            var group = response.groups[index];
+            group.root = getInstance(group.root);
+
+            for (var itemIndex = 0; itemIndex < group.items.length; itemIndex++) {
+              group.items[itemIndex].instance = getInstance(group.items[itemIndex].instance);
+
+            }
+
+            var html = "<div class='search_result'>";
+
+            html += "<div>";
+            html += "<span class='search_result_diarienummer'>" + group.items[0].instance.diarienummer + "</span>";
+
+
+            html += "<span class='search_result_type'>" + getTypeText(group.items[0].type) + "</span>";
+            html += "<span class='search_result_timestamp'>" + $.format.date(group.items[0].timestamp, 'yyyy-MM-dd') + "</span>";
+
+            html += "<span class='search_result_diarium'>" + group.items[0].instance.diarium.namn + "</span>";
+
+
+            html += "</div>";
+
+            html += "<div class='search_result_title'>";
+            if (group.items[0].type === "Arende") {
+              html += group.items[0].instance.mening;
+            } else if (group.items[0].type === "Atgard") {
+              html += group.items[0].instance.text;
+            } else if (group.items[0].type === "Dokument") {
+              html += group.items[0].instance.text;
+            } else {
+              html += typeText + " utan titel";
+            }
+            html += "</div>";
+
+            var ignoredInstances = [];
+
+            if (group.items[0].type === "Arende") {
+              ignoredInstances.push(group.items[0].instance);
+            }
+
+            // group items
+
+            html += "<table>";
+            for (var itemIndex = 1; itemIndex < group.items.length; itemIndex++) {
+              var item = group.items[itemIndex];
+              if ($.inArray(item.instance, ignoredInstances) == -1) {
+
+                html += "<tr class='search_result_group_item'>";
+
+                html += "<td class='search_result_timestamp'>" + $.format.date(item.timestamp, 'yyyy-MM-dd') + "</td>";
+                html += "<td class='search_result_group_item_type'>" + getTypeText(item.type) + "</td>";
+
+                html += "<td class='search_result_group_item_title'>";
+                if (item.type === "Arende") {
+                  html += item.instance.mening;
+                } else if (item.type === "Atgard") {
+                  html += item.instance.text;
+                } else if (item.type === "Dokument") {
+                  html += item.instance.text;
+                } else {
+                  html += "Utan titel";
+                }
+                html += "</td>";
+
+
+              }
+              html += "</tr>";
+
+
+            }
+            html += "</table>";
+
+
+            if (group.items[0].explaination !== undefined) {
+              html += "<br/>";
+              html += group.items[0].explanation;
+            }
+
+            html += "</div>";
+
+            html += "<div style='height: 10;'></div>";
+
+            $(html).appendTo('#search_results');
+          }
+
+        }
+
+        renderGroups();
 
         var sekunder = ((new Date().getTime() - searchTimer) / 1000).toString();
         sekunder = sekunder.substring(0, Math.min(sekunder.length, 5));
@@ -248,6 +349,19 @@ function appendFacetElement(html, facet) {
   facetElement.appendTo($("#facets"));
   return facetElement;
 }
+
+function getTypeText(type) {
+  if (type === "Arende") {
+    return "Ärende";
+  } else if (type === "Atgard") {
+    return "Åtgärd";
+  } else if (type === "Dokument") {
+    return "Dokument";
+  } else {
+    return type;
+  }
+}
+
 
 
 

@@ -82,6 +82,32 @@ public class SearchServlet extends JSONPostService {
       }
     });
 
+    sortOrders.put("timestamp", new Comparator<SearchResult>() {
+
+      private IdentifiableVisitor<Long> getTimestamp = new IndexableVisitor<Long>() {
+        @Override
+        public Long visit(Arende ärende) {
+          return ärende.getRegistrerad();
+        }
+
+        @Override
+        public Long visit(Atgard åtgärd) {
+          return åtgärd.getRegistrerad();
+        }
+
+        @Override
+        public Long visit(Dokument dokument) {
+          return 0l; // todo
+//          return dokument.getRegistrerad();
+        }
+      };
+
+      @Override
+      public int compare(SearchResult o1, SearchResult o2) {
+        return o1.getInstance().accept(getTimestamp).compareTo(o2.getInstance().accept(getTimestamp));
+      }
+    });
+
     sortOrders.put(null, sortOrders.get("score"));
   }
 
@@ -115,7 +141,65 @@ public class SearchServlet extends JSONPostService {
     }
   }
 
-  private class GetInstanceJSON implements IndexableVisitor<JSONObject> {
+  private IndexableVisitor<Long> getTimestamp = new IndexableVisitor<Long>(){
+    @Override
+    public Long visit(Arende ärende) {
+      return ärende.getRegistrerad();
+    }
+
+    @Override
+    public Long visit(Atgard åtgärd) {
+      return åtgärd.getRegistrerad();
+    }
+
+    @Override
+    public Long visit(Dokument dokument) {
+      return null; //
+    }
+  };
+
+  private class GetInstanceJSON implements IdentifiableVisitor<JSONObject> {
+
+    @Override
+    public JSONObject visit(Diarium diarium) {
+      try {
+        JSONObject json = new JSONObject(new LinkedHashMap(20));
+        json.put("identity", diarium.getIdentity());
+        json.put("namn", diarium.getNamn());
+        return json;
+      } catch (JSONException je) {
+        throw new RuntimeException(je);
+      }
+
+    }
+
+    @Override
+    public JSONObject visit(Enhet enhet) {
+      try {
+        JSONObject json = new JSONObject(new LinkedHashMap(20));
+        json.put("diarium", enhet.getDiarium().getIdentity());
+        json.put("identity", enhet.getIdentity());
+        json.put("namn", enhet.getNamn());
+        json.put("kod", enhet.getKod());
+        return json;
+      } catch (JSONException je) {
+        throw new RuntimeException(je);
+      }
+    }
+
+    @Override
+    public JSONObject visit(Anvandare användare) {
+      try {
+        JSONObject json = new JSONObject(new LinkedHashMap(20));
+        json.put("diarium", användare.getDiarium().getIdentity());
+        json.put("identity", användare.getIdentity());
+        json.put("namn", användare.getNamn());
+        json.put("signatur", användare.getSignatur());
+        return json;
+      } catch (JSONException je) {
+        throw new RuntimeException(je);
+      }
+    }
 
     private JSONObject factory(Indexable indexable) throws JSONException {
       JSONObject json = new JSONObject(new LinkedHashMap(20));
@@ -184,29 +268,31 @@ public class SearchServlet extends JSONPostService {
 
     private int end;
 
-    private Set<Indexable> instances = new HashSet<>(length * 3);
+    private Set<Identitfiable> instances = new HashSet<>(length * 3);
     IndexableVisitor<Void> gatherInstances = new IndexableVisitor<Void>() {
       @Override
       public Void visit(Arende ärende) {
         instances.add(ärende);
-        return null;  
+        instances.add(ärende.getDiarium());
+        return null;
       }
 
       @Override
       public Void visit(Atgard åtgärd) {
         instances.add(åtgärd);
         visit(åtgärd.getÄrende());
-        return null;  
+        return null;
       }
 
       @Override
       public Void visit(Dokument dokument) {
         instances.add(dokument);
+        instances.add(dokument.getDiarium());
         if (dokument.getÅtgärd() != null) {
           visit(dokument.getÅtgärd());
         }
 
-        return null;  
+        return null;
       }
     };
 
@@ -233,7 +319,7 @@ public class SearchServlet extends JSONPostService {
       // collect search results
       timerStarted = System.currentTimeMillis();
       final List<SearchResult> searchResults = Solarie.getInstance().getIndex().search(query, score, explain);
-      responseJSON.put("length", searchResults.size());      
+      responseJSON.put("length", searchResults.size());
       timersJSON.put("collect", System.currentTimeMillis() - timerStarted);
 
       // create facets
@@ -367,14 +453,13 @@ public class SearchServlet extends JSONPostService {
         Group group = orderdGroups.get(groupIndex);
         JSONObject groupJSON = new JSONObject();
         groupsJSON.put(groupJSON);
-        groupJSON.put("bestScore", group.bestScore);
         groupJSON.put("root", group.root.getIdentity());
-        JSONArray groupSearchResultsJSON = new JSONArray();
-        groupJSON.put("searchResults", groupSearchResultsJSON);
-        List<SearchResult> groupSearchResults = group.searchResults;
-        for (int groupSearchResultsIndex = 0; groupSearchResultsIndex < groupSearchResults.size(); groupSearchResultsIndex++) {
-          SearchResult searchResult = groupSearchResults.get(groupSearchResultsIndex);
-          groupSearchResultsJSON.put(toJSON(groupSearchResultsIndex, searchResult));
+        JSONArray groupItemsJSON = new JSONArray();
+        groupJSON.put("items", groupItemsJSON);
+        List<SearchResult> groupItems = group.searchResults;
+        for (int itemIndex = 0; itemIndex < groupItems.size(); itemIndex++) {
+          SearchResult searchResult = groupItems.get(itemIndex);
+          groupItemsJSON.put(toJSON(itemIndex, searchResult));
           searchResult.getInstance().accept(gatherInstances);
         }
       }
@@ -387,17 +472,16 @@ public class SearchServlet extends JSONPostService {
       timerStarted = System.currentTimeMillis();
       JSONArray instancesJSON = new JSONArray(new ArrayList(instances.size()));
       responseJSON.put("instances", instancesJSON);
-      for (Indexable instance : instances) {
+      for (Identitfiable instance : instances) {
         instancesJSON.put(instance.accept(getInstanceJSON));
       }
       timersJSON.put("instances", System.currentTimeMillis() - timerStarted);
 
 
-
     }
 
     private JSONObject toJSON(int index, SearchResult searchResult) throws JSONException {
-      
+
       JSONObject searchResultJSON = new JSONObject(new LinkedHashMap<>(10));
 
       searchResultJSON.put("index", index);
@@ -408,6 +492,9 @@ public class SearchServlet extends JSONPostService {
         // todo as JSON
         searchResultJSON.put("explanation", searchResult.getExplanation().toHtml());
       }
+
+      searchResultJSON.put("timestamp", searchResult.getInstance().accept(getTimestamp));
+
       searchResultJSON.put("type", searchResult.getInstance().getClass().getSimpleName());
       searchResultJSON.put("instance", searchResult.getInstance().getIdentity());
 

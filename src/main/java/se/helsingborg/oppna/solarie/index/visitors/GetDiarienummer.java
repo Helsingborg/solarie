@@ -6,7 +6,7 @@ import se.helsingborg.oppna.solarie.domain.*;
  * @author kalle
  * @since 2014-10-04 08:44
  */
-public class GetDiarienummer implements IndexableVisitor<Diarienummer> {
+public class GetDiarienummer extends IndexableVisitor<Diarienummer> {
 
   private static GetDiarienummer instance = new GetDiarienummer();
 

@@ -33,6 +33,11 @@ public class Anvandare implements Identitfiable, DiariumBound {
 
   private List<Enhet> enhetsansvar = new ArrayList<>(100);
 
+  @Override
+  public <R> R accept(IdentifiableVisitor<R> visitor) {
+    return visitor.visit(this);
+  }
+
 
   // getters & setters
 

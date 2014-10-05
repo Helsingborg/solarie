@@ -10,11 +10,6 @@ public class Atgard implements Identitfiable, Indexable {
 
   private static final long serialVersionUID = 1l;
 
-  @Override
-  public <R> R accept(IndexableVisitor<R> visitor) {
-    return visitor.visit(this);
-  }
-
   /** Internal solarie identity */
   private Long identity;
 
@@ -33,6 +28,12 @@ public class Atgard implements Identitfiable, Indexable {
   private Anvandare ägare;
 
   private List<Dokument> dokument;
+
+
+  @Override
+  public <R> R accept(IdentifiableVisitor<R> visitor) {
+    return visitor.visit(this);
+  }
 
 
   // getters & setters

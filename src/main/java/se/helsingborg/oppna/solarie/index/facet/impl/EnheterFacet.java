@@ -79,7 +79,7 @@ public class EnheterFacet extends FacetDefinition {
 
 
 
-  private class GatherEnheter implements IndexableVisitor<Void> {
+  private class GatherEnheter extends IndexableVisitor<Void> {
     private Set<Enhet> enheterna = new HashSet<>();
 
     @Override
@@ -113,7 +113,7 @@ public class EnheterFacet extends FacetDefinition {
     }
   }
 
-  private class MatchesVisitor implements IndexableVisitor<Boolean> {
+  private class MatchesVisitor extends IndexableVisitor<Boolean> {
 
     private Enhet enhet;
 

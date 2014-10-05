@@ -23,6 +23,11 @@ public class Diarium implements Identitfiable {
   private Map<String, Anvandare> användareBySignatur = new HashMap<>(250);
   private Map<String, Enhet> enhetByKod = new HashMap<>(250);
 
+  @Override
+  public <R> R accept(IdentifiableVisitor<R> visitor) {
+    return visitor.visit(this);
+  }
+
   public String getNamn() {
     return namn;
   }

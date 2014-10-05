@@ -6,8 +6,4 @@ package se.helsingborg.oppna.solarie.domain;
  */
 public interface Indexable extends Identitfiable {
 
-  public abstract <R> R accept(IndexableVisitor<R> visitor);
-
-
-
 }
