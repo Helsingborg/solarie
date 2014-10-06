@@ -22,7 +22,6 @@
 
 <!--root-->
 <table style="width: 100%;">
-
   <tr>
     <td>
       <table style="width: 100%; vertical-align: middle;">
@@ -52,7 +51,6 @@
 
   <tr>
     <td id="response_length" style="height:1em; text-align: right">
-      Laddar in alla objekt i omvänd kronologisk ordning…
     </td>
   </tr>
 
@@ -70,7 +68,62 @@
 
           </td>
           <td style="vertical-align: top">
-            <div id="search_results"></div>
+            <div id="search_results">
+              <div id="welcome" style="padding-right: 12em">
+                <p>
+                  Solarie, version 0.0.1.
+                </p>
+
+                <p>
+                  Sökmotor för en eller flera Visma Ciceron/Diabas-databaser.
+                </p>
+
+                <p style="font-weight: bold">
+                  Sökning utan textfråga returnerar allt från alla diarium, sorterat efter datum.
+                </p>
+
+                <p>
+                  Saker man kan hitta, indexpunkter, består för närvarande av ärenden och åtgärder.
+                  Möjliga framtida indexpunkter skulle exempelvis kunna vara dokument, användare och enheter.
+                </p>
+
+                <p>
+                  Sökresultat är grupper av indexpunkter med samma diarienummer per Cicerion-databas.
+                </p>
+
+                <p>
+                  Gruppens indexpunkter sorteras enligt samma parameter som själva grupperna,
+                  undantaget den översta indexpunktens förälderobjekt som hamnar först i stigande ordning.
+                  Exempel, i fallet där en grupps översta svar är ett dokument
+                  så är dess första undersvar åtgärden, sedan ärendet,
+                  och sist alla andra indexpunkteträffar från den sökningen.
+                  Förälderobjekt till översta indexpunkter visas alltid,
+                  alltså även om det egentligen inte var något träff på dess indexpunkt med den givna sökfrågan.
+                </p>
+
+                <p>
+                  Skriver man in ord sorteras resultat efter relevans,
+                  förenklat hur många av sökorden som finns med i resultatet.
+                </p>
+
+                <p>
+                  Desto fler ord du skriver desto fler sökträffar.
+                </p>
+
+                <p>
+                  Till vänster om sökresultat presenteras kategorier (facetter).
+                  Klicka på en för att visa dess underkategorier. Klicka igen för att gömma dem.
+                  Klicka på en underkatagori för att beskära resultaten.
+                  Inderkategorin flyttas till listan över aktiva underkatagorier.
+                  Klicka på underkategorin där för att stänga av det.
+                </p>
+
+                <p>
+                  Desto fler underkategorier du väljer desto färre sökträffar får du.
+                </p>
+
+              </div>
+            </div>
           </td>
         </tr>
       </table>
@@ -81,6 +134,7 @@
       <div id="pages"></div>
     </td>
   </tr>
+
 </table>
 
 

@@ -18,6 +18,8 @@ function setInstance(instance) {
 $(function onLoad() {
 
 
+
+
   var queryInput = $('#query');
   queryInput.watermark("Skriv din fråga och tryck på enter!", "watermark2");
   queryInput.focus();
@@ -33,7 +35,6 @@ $(function onLoad() {
     }
   };
 
-  search();
 
 });
 
@@ -137,13 +138,13 @@ function search() {
 
           var html = "<div class='facet'>";
 
-          html += "<span class='facet_name link'>" + facet.name + "</span> " + facet.values.length + "st|" + formatPercent(facet.matches, response.length);
+          html += "<span class='facet_name link'>" + facet.name + "</span> " + facet.values.length + "st|" + formatPercent(facet.matches, response.length, false);
           html += "<div class='facet_values' style='padding-bottom: 1.5em; display: none;'>";
           for (var facetValueIndex = 0; facetValueIndex < facet.values.length; facetValueIndex++) {
             var facetValue = facet.values[facetValueIndex];
             html += "<div class='facet_value' style='padding-left: 1em; padding-bottom: 0.25em;'>"
-                + "<span class='facet_value_percent'>" + formatPercent(facetValue.matches, response.length) + "</span>"
-                + "<span class='link'>" + facetValue.name + "</span>"
+                + "<span class='facet_value_percent'>" + formatPercent(facetValue.matches, response.length, true) + "</span>"
+                + "<span class='facet_value_name link'>" + facetValue.name + "</span>"
                 + "</div>";
           }
           html += "</div>"; // values
@@ -309,8 +310,8 @@ function appendFacetElement(html, facet) {
 
   var valuesElement = facetElement.find('.facet_values');
 
-  facetElement.find('.facet_value_name').each(function(index, element) {
-    makeLink(element);
+  facetElement.find('.facet_value_name').each(function (index, element) {
+    makeLink($(element));
   });
 
 
@@ -361,7 +362,9 @@ function getTypeText(searchResult) {
     return "Ärende";
   } else if (searchResult.type === "Atgard") {
 
-    if (searchResult.instance.inkom) {
+    if (searchResult.instance.inkom && searchResult.instance.utgick) {
+      return "Inkommande och utgående åtgärd";
+    } else if (searchResult.instance.inkom) {
       return "Inkommande åtgärd";
     } else if (searchResult.instance.utgick) {
       return "Utgående åtgärd";
@@ -375,22 +378,41 @@ function getTypeText(searchResult) {
   }
 }
 
-function formatPercent(part, total) {
+function formatPercent(part, total, leftPadding) {
+  var html = '<span class="percent">';
+  var paddingLeft = 0;
   if (part === total) {
-    return "100%";
-  }
-
-  var factor = part / total;
-  var percent = (factor * 100).toString().replace(".", ",");
-
-  if (factor >= 0.1) {
-    return percent.substring(0, 2) + "%";
+    html += "100%";
   } else {
-    return percent.substring(0, 3) + "%";
+
+    var factor = part / total;
+    var percent = (factor * 100).toString().replace(".", ",");
+
+    if (factor >= 0.1) {
+      if (leftPadding) {
+        html += "&nbsp;&nbsp;";
+      }
+      html += percent.substring(0, 2) + "%";
+      if (!leftPadding) {
+        html += "&nbsp;&nbsp;";
+      }
+
+    } else {
+      if (leftPadding) {
+        html += "&nbsp;";
+      }
+      html += percent.substring(0, 3) + "%";
+      if (!leftPadding) {
+        html += "&nbsp;";
+      }
+    }
   }
+  html += "</span>";
 
 
+  return html;
 }
+
 
 
 

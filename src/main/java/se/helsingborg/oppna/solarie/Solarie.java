@@ -68,7 +68,12 @@ public class Solarie {
     PrevaylerFactory<Root> prevaylerFactory = new PrevaylerFactory<>();
     prevaylerFactory.configurePrevalentSystem(new Root());
     prevaylerFactory.configurePrevalenceDirectory(prevaylerPath.getAbsolutePath());
-    prevayler = prevaylerFactory.create();
+    try {
+      prevayler = prevaylerFactory.create();
+    } catch (StackOverflowError e) {
+      log.error("You probably need to increase Java parameter -Xss in MAVEN_OPTS of file start.sh", e);
+      throw e;
+    }
     log.info("Prevayler has started!");
 
 

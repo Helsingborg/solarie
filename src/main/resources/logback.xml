@@ -13,5 +13,6 @@
   </root>
 
   <logger name="se.helsingborg.oppna.solarie" level="DEBUG" />
+  <logger name="se.helsingborg.oppna.solarie.webapp.version_0_0_1.SearchServlet" level="INFO" />
 
 </configuration>
