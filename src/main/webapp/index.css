@@ -44,8 +44,16 @@ html, body {
   color: #0B0080;
 }
 
+.facet {
+  padding-bottom: 0.25em;
+}
+
 .facet_name {
 
+}
+
+.facet_value_percent {
+  padding-right: 1em;
 }
 
 .active_facet {

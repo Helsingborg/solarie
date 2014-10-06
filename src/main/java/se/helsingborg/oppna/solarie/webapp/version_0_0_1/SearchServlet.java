@@ -4,6 +4,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONTokener;
 import se.helsingborg.oppna.solarie.Solarie;
 import se.helsingborg.oppna.solarie.domain.*;
 import se.helsingborg.oppna.solarie.index.JSONQueryUnmarshaller;
@@ -36,6 +37,7 @@ public class SearchServlet extends JSONPostService {
   @Override
   public void writeDocumentationRequest(PrintWriter writer) throws IOException {
     writer.println("{");
+    writer.println("  \"cached\": String, if set this will be used for template or previous cached");
     writer.println("  \"reference\": Any value");
     writer.println("  \"explain\": Boolean (default false), true if explaining hits");
     writer.println("  \"score\": Boolean (default true), if items are scored on relevance from query");
@@ -64,6 +66,8 @@ public class SearchServlet extends JSONPostService {
   }
 
   private Map<String, Comparator<SearchResult>> sortOrders = new HashMap<>();
+
+  private Map<String, JSONObject> cachedResults = new HashMap<>();
 
   @Override
   public void init() throws ServletException {
@@ -97,8 +101,7 @@ public class SearchServlet extends JSONPostService {
 
         @Override
         public Long visit(Dokument dokument) {
-          return 0l; // todo
-//          return dokument.getUtgick();
+          throw new UnsupportedOperationException();
         }
       };
 
@@ -165,7 +168,7 @@ public class SearchServlet extends JSONPostService {
 
     @Override
     public Long visit(Dokument dokument) {
-      return null; //
+      throw new UnsupportedOperationException();
     }
   };
 
@@ -292,7 +295,7 @@ public class SearchServlet extends JSONPostService {
 
     private int end;
 
-    private Set<Identitfiable> instances = new HashSet<Identitfiable>(length * 3){
+    private Set<Identitfiable> instances = new HashSet<Identitfiable>(length * 3) {
       @Override
       public boolean add(Identitfiable identitfiable) {
         return identitfiable != null && super.add(identitfiable);
@@ -322,7 +325,8 @@ public class SearchServlet extends JSONPostService {
         }
         instances.add(dokument);
         instances.add(dokument.getDiarium());
-        return null;
+//        return null;
+        throw new UnsupportedOperationException();
       }
     };
 
@@ -336,6 +340,20 @@ public class SearchServlet extends JSONPostService {
       if (requestJSON.has("reference")) {
         responseJSON.put("reference", requestJSON.get("reference"));
       }
+
+      String cached = null;
+      if (requestJSON.has("cached")) {
+        cached = requestJSON.getString("cached");
+        JSONObject cachedJSON = cachedResults.get(cached);
+        if (cachedJSON != null) {
+          for (Iterator keys = cachedJSON.keys(); keys.hasNext(); ) {
+            String key = (String) keys.next();
+            responseJSON.put(key, cachedJSON.get(key));
+          }
+          return;
+        }
+      }
+
       Query query = !requestJSON.has("query") ? new MatchAllDocsQuery() : new JSONQueryUnmarshaller().parseJsonQuery(requestJSON.getJSONObject("query"));
       score = requestJSON.getBoolean("score", true);
       explain = requestJSON.getBoolean("explain", false);
@@ -600,7 +618,16 @@ public class SearchServlet extends JSONPostService {
       }
       timersJSON.put("instances", System.currentTimeMillis() - timerStarted);
 
-
+      if (cached != null) {
+        JSONObject cachedJSON = new JSONObject(new JSONTokener(responseJSON.toString()));
+        cachedJSON.remove("reference");
+        timersJSON = cachedJSON.getJSONObject("timers");
+        for (Iterator keys = timersJSON.keys(); keys.hasNext(); ) {
+          String key = (String) keys.next();
+          timersJSON.put(key, 0);
+        }
+        cachedResults.put(cached, cachedJSON);
+      }
     }
 
     private JSONObject toJSON(int index, SearchResult searchResult) throws JSONException {

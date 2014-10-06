@@ -53,7 +53,7 @@ public class InkommetUtgaendeFacet extends FacetDefinition {
         FacetValue ut = new FacetValue(searchResults, "Utgående") {
           @Override
           public boolean matches(SearchResult searchResult) {
-            return searchResult.getInstance().accept(GetInkom.getInstance()) != null;
+            return searchResult.getInstance().accept(GetUtgick.getInstance()) != null;
           }
 
           @Override

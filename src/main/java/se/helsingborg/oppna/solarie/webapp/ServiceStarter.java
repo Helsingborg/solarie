@@ -13,12 +13,16 @@ public class ServiceStarter implements ServletContextListener {
 
   @Override
   public void contextInitialized(ServletContextEvent servletContextEvent) {
-    try {
-
-      Solarie.getInstance().open();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          Solarie.getInstance().open();
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }).start();
   }
 
   @Override

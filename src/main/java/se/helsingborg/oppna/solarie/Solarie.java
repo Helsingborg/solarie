@@ -42,7 +42,12 @@ public class Solarie {
   private Prevayler<Root> prevayler;
   private SolarieIndex index;
 
+  public Long timestampStarted;
+  public Long timestampOpened;
+
   public void open() throws Exception {
+
+    timestampStarted = System.currentTimeMillis();
 
     Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 
@@ -121,11 +126,20 @@ public class Solarie {
     }
 
 
-    log.info("Solarie has been started!");
+    timestampOpened = System.currentTimeMillis();
+
+    log.info("Solarie is all opened up!");
 
   }
 
 
+  public Long getTimestampStarted() {
+    return timestampStarted;
+  }
+
+  public Long getTimestampOpened() {
+    return timestampOpened;
+  }
 
   public File getDataPath() {
     return dataPath;

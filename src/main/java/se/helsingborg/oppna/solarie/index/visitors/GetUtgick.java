@@ -33,6 +33,6 @@ public class GetUtgick extends IndexableVisitor<Long> {
 
   @Override
   public Long visit(Dokument dokument) {
-    return null;
+    throw new UnsupportedOperationException();
   }
 }

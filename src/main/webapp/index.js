@@ -40,6 +40,9 @@ $(function onLoad() {
 
 function search() {
 
+  $('#response_length').text('Söker…');
+  $('#search_results').empty();
+
   var searchTimer = new Date().getTime();
 
   var request = {
@@ -49,7 +52,7 @@ function search() {
     sortOrder: 'score',
     explain: false,
     offset: 0,
-    length: 100,
+    length: 20,
     query: {
       type: 'boolean',
       clauses: [
@@ -71,13 +74,19 @@ function search() {
 
   var textQuery = $('#query').val().trim();
   if ("" === textQuery) {
+
+    if (selectedFacets.length === 0) {
+      request.cached = "empty";
+    }
+
+    request.sortOrder = 'timestamp';
     request.query.clauses.push({
       occur: 'should',
       query: {
         type: 'match all documents'
       }
     });
-    request.sortOrder = 'timestamp';
+
   } else {
     request.query.clauses.push({
       occur: 'must',
@@ -126,21 +135,22 @@ function search() {
         for (var facetIndex = 0; facetIndex < response.facets.length; facetIndex++) {
           var facet = response.facets[facetIndex];
 
-          var html = "<div>";
-          html += "<span class='facet_name link'>" + facet.name + "</span>&nbsp;(" + facet.matches + ")";
-          html += "<div style='padding-bottom: 1.5em; display: none;'>";
+          var html = "<div class='facet'>";
+
+          html += "<span class='facet_name link'>" + facet.name + "</span> " + facet.values.length + "st|" + formatPercent(facet.matches, response.length);
+          html += "<div class='facet_values' style='padding-bottom: 1.5em; display: none;'>";
           for (var facetValueIndex = 0; facetValueIndex < facet.values.length; facetValueIndex++) {
             var facetValue = facet.values[facetValueIndex];
-            html += "<div style='padding-left: 1em; padding-bottom: 0.25em;'>";
-            html += facetValue.name;
-            html += "&nbsp;(";
-            html += facetValue.matches;
-            html += ")</div>";
+            html += "<div class='facet_value' style='padding-left: 1em; padding-bottom: 0.25em;'>"
+                + "<span class='facet_value_percent'>" + formatPercent(facetValue.matches, response.length) + "</span>"
+                + "<span class='link'>" + facetValue.name + "</span>"
+                + "</div>";
           }
-          html += "</div>";
+          html += "</div>"; // values
+
+          html += "</div>"; // facet
 
           appendFacetElement(html, facet);
-
         }
 
         // set instances
@@ -242,10 +252,11 @@ function search() {
                 $("<span class='timestamp'>" + (item.timestamp ? $.format.date(item.timestamp, 'yyyy-MM-dd') : "????-??-??") + "</span>").appendTo(groupItemElement);
                 $("<span class='padding'></span>").appendTo(groupItemElement);
                 $("<span class='indexable_type'>").appendTo(groupItemElement);
-                var groupItemType = $("<span class='link'/>");
+                var groupItemType = $("<span class='facet_value_name link'/>");
                 groupItemType.appendTo(groupItemElement);
                 groupItemType.text(getTypeText(item));
                 $("<span>:&nbsp;</span>").appendTo(groupItemElement);
+                makeLink(groupItemType);
 
                 var groupItemTitle = $("<span class='title'/>");
                 groupItemTitle.appendTo(groupItemElement);
@@ -293,10 +304,15 @@ function appendFacetElement(html, facet) {
   var facetElement = $(html);
   facetElement.get(0).facet = facet;
 
-  var facetNameElement = facetElement.find('span');
-  var valuesElement = facetElement.find('div');
+  var facetNameElement = facetElement.find('.facet_name');
+  makeLink(facetNameElement);
 
-  makeLink(facetElement);
+  var valuesElement = facetElement.find('.facet_values');
+
+  facetElement.find('.facet_value_name').each(function(index, element) {
+    makeLink(element);
+  });
+
 
   facetNameElement.click(function () {
     if (valuesElement.is(":visible")) {
@@ -310,10 +326,8 @@ function appendFacetElement(html, facet) {
     }
   });
 
-  valuesElement.children().each(function (index, element) {
+  function makeActiveFacetClickable(element, facetValue, facet) {
     $(element).click(function () {
-      var facet = facetElement.get(0).facet;
-      var facetValue = facet.values[index]
       selectedFacets.push(facetValue);
       var activeFacet = $('<span/>');
       activeFacet.addClass('active_facet');
@@ -330,6 +344,12 @@ function appendFacetElement(html, facet) {
       activeFacet.appendTo($('#active_facets'));
       search();
     });
+  }
+
+  valuesElement.children().each(function (index, element) {
+    var facet = facetElement.get(0).facet;
+    var facetValue = facet.values[index];
+    makeActiveFacetClickable(element, facetValue, facet);
   });
 
   facetElement.appendTo($("#facets"));
@@ -355,6 +375,22 @@ function getTypeText(searchResult) {
   }
 }
 
+function formatPercent(part, total) {
+  if (part === total) {
+    return "100%";
+  }
+
+  var factor = part / total;
+  var percent = (factor * 100).toString().replace(".", ",");
+
+  if (factor >= 0.1) {
+    return percent.substring(0, 2) + "%";
+  } else {
+    return percent.substring(0, 3) + "%";
+  }
+
+
+}
 
 
 
