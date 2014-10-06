@@ -445,16 +445,16 @@ public class SearchServlet extends JSONPostService {
       GetInstanceJSON getInstanceJSON = new SearchServlet.GetInstanceJSON();
 
 
-      // select search results to display
-      timerStarted = System.currentTimeMillis();
-
-      JSONArray itemsJSON = new JSONArray();
-      responseJSON.put("items", itemsJSON);
-
-      for (int index = offset; index < end && index < searchResults.size(); index++) {
-        SearchResult searchResult = searchResults.get(index);
-        itemsJSON.put(toJSON(index, searchResult));
-      }
+//      // select search results to display
+//      timerStarted = System.currentTimeMillis();
+//
+//      JSONArray itemsJSON = new JSONArray();
+//      responseJSON.put("items", itemsJSON);
+//
+//      for (int index = offset; index < end && index < searchResults.size(); index++) {
+//        SearchResult searchResult = searchResults.get(index);
+//        itemsJSON.put(toJSON(index, searchResult));
+//      }
 
 
       timersJSON.put("assemble", System.currentTimeMillis() - timerStarted);
