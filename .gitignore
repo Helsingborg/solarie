@@ -1,0 +1,16 @@
+target
+data
+log.txt
+server.pid
+
+# OS X
+**/.DS_Store
+
+# Jetbrains Intellij Idea
+.idea
+*.iml
+
+# fyffe.kodapan.se
+src/main/resources/diarier.fyffe.local.json
+src/main/resources/diarier.alla.fyffe.local.json
+

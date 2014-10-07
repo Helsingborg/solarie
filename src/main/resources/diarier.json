@@ -1,0 +1,6 @@
+[
+  {
+    "jdbcURL" : "jdbc:sqlserver://192.168.1.120\\SQLServer;database=testextern;user=sa;password=sa",
+    "namn" : "Namnet på det diarium som finns tillgänligt i jdbcURL"
+  }
+]

@@ -1,0 +1,5 @@
+Saker man kan tänka sig vilja ha:
+
+* Gruppera svar med samma diarienummer
+* Håll koll på hur mycket händelser det varit i ett ärende över tid. De som förändras mycket just nu kan flaggas "trendande"
+* Tillåt att bara returnera identiteter vid search, inför andra anrop som hämtar bara den data som ännu inte setts till förr.

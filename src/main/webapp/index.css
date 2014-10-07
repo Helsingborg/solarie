@@ -1,0 +1,119 @@
+html, body, div, span, textarea, button, input, table, tr, td {
+  font-family: monospace, arial, helvetica, sans-serif;
+  font-size: 13px
+}
+
+div, span, td, tr {
+  vertical-align: top;
+}
+
+input, button {
+  font-size: 20px;
+}
+
+html, body {
+  margin: 0px;
+  padding: 0px;
+  width: 100%;
+  height: 100%;
+  color: #808080;
+}
+
+#active_facets {
+  text-align: left;
+  font-weight: bold;
+}
+
+#query {
+  color: #000000;
+  width: 24em;
+}
+
+.query_watermark {
+  color: #999 !important;
+  font-style: italic !important;
+}
+
+.link {
+  text-decoration: underline;
+  color: #0645AD;
+}
+
+.visited_link {
+  text-decoration: underline;
+  color: #0B0080;
+}
+
+.facet {
+  padding-bottom: 0.25em;
+}
+
+.facet_name {
+
+}
+
+.facet_value_percent {
+  padding-right: 1em;
+}
+
+.active_facet {
+  padding-left: 2em;
+}
+
+.search_result {
+  padding-bottom: 2em;
+}
+
+
+.diarienummer {
+  /*font-weight: bold;*/
+}
+
+.padding {
+  padding-right: 1em;
+}
+
+.score {
+
+}
+
+.timestamp {
+  white-space: nowrap;
+}
+.title {
+
+}
+
+.group_first_item_title {
+  font-size: large;
+}
+
+.group_first_item_type {
+  font-size: large;
+}
+
+.group_item {
+  padding-top: 5px;
+}
+
+.group_result {
+  padding-bottom: 3em;
+}
+
+
+.indexable_type {
+  font-weight: bold;
+}
+
+#progressbar {
+  background-color: black;
+  border-radius: 13px; /* (height of inner div) / 2 + padding */
+  padding: 3px;
+}
+
+#progressbar > div {
+  background-color: orange;
+  width: 40%; /* Adjust with JavaScript */
+  height: 20px;
+  border-radius: 10px;
+}

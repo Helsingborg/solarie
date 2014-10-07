@@ -1,0 +1,6 @@
+== Från 0.0.1 till 0.0.2 ==
+
+* ... ny framtida förändring
+
+== Introduktion av 0.0.1 ==
+
