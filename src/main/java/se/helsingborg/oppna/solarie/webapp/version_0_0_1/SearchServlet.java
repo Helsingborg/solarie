@@ -11,10 +11,12 @@ import se.helsingborg.oppna.solarie.index.JSONQueryUnmarshaller;
 import se.helsingborg.oppna.solarie.index.SearchResult;
 import se.helsingborg.oppna.solarie.index.facet.Facet;
 import se.helsingborg.oppna.solarie.index.facet.FacetDefinition;
-import se.helsingborg.oppna.solarie.index.visitors.GetDiarienummer;
-import se.helsingborg.oppna.solarie.index.visitors.GetDiarium;
 import se.helsingborg.oppna.solarie.util.JSONObject;
 import se.helsingborg.oppna.solarie.webapp.JSONPostService;
+import se.helsingborg.oppna.solarie.webapp.version_0_0_1.sort.Score;
+import se.helsingborg.oppna.solarie.webapp.version_0_0_1.sort.Timestamp;
+import se.helsingborg.oppna.solarie.webapp.version_0_0_1.visitors.GetSearchResultInstanceJSON;
+import se.helsingborg.oppna.solarie.webapp.version_0_0_1.visitors.GetTimestamp;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -37,15 +39,14 @@ public class SearchServlet extends JSONPostService {
   @Override
   public void writeDocumentationRequest(PrintWriter writer) throws IOException {
     writer.println("{");
-    writer.println("  \"cached\": String, if set this will be used for template or previous cached");
+    writer.println("  \"cached\": String, template name for this query");
     writer.println("  \"reference\": Any value");
     writer.println("  \"explain\": Boolean (default false), true if explaining hits");
     writer.println("  \"score\": Boolean (default true), if items are scored on relevance from query");
-    writer.println("  \"sortOrder\": String, e.g. 'score'");
+    writer.println("  \"sortOrder\": String, 'score' or 'timestamp'");
     writer.println("  \"offset\": 0-based item start offset");
     writer.println("  \"length\": Maximum number of returned results");
     writer.println("  \"query\": Query");
-//    writer.println("  \"facets\": []");
     writer.println("}");
   }
 
@@ -55,13 +56,16 @@ public class SearchServlet extends JSONPostService {
     writer.println("  \"reference\": Same as request");
     writer.println("  \"length\": Total number of matching items, i.e. might be greater than items.length");
     writer.println("  \"timers\": { \"timer name\": milliseconds }");
-    writer.println("  \"items\": [{");
+    writer.println("  \"groups\": [{");
     writer.println("    \"index\": 0-based item offset");
     writer.println("    \"score\": If request.score is true");
-    writer.println("    \"explanation\": If request.explain is true. HTML explaination of scoring");
-    writer.println("    \"type\": Packageless Java class name of instance");
-    writer.println("    \"instance\": Actual search result");
+    writer.println("    \"instance\": (Long) integer value, identity of instance");
     writer.println("  }]");
+    writer.println("  \"instances\": [{\n");
+    writer.println("    \"identity\": (Long) integer value\n");
+    writer.println("    \"enhet\": (Long) integer value\n");
+    writer.println("    ...\n");
+    writer.println("  }]\n");
     writer.println("}");
   }
 
@@ -71,57 +75,10 @@ public class SearchServlet extends JSONPostService {
 
   @Override
   public void init() throws ServletException {
-    sortOrders.put("score", new Comparator<SearchResult>() {
-      @Override
-      public int compare(SearchResult o1, SearchResult o2) {
-        if (o1.getScore() != null && o2.getScore() != null) {
-          return o2.getScore().compareTo(o1.getScore());
-        } else if (o1.getScore() == null && o2.getScore() == null) {
-          return 0;
-        } else if (o1.getScore() != null) {
-          return -1;
-        } else {
-          return 1;
-        }
-      }
-    });
+    sortOrders.put("score", new Score());
+    sortOrders.put("timestamp", new Timestamp());
 
-    sortOrders.put("timestamp", new Comparator<SearchResult>() {
-
-      private IdentifiableVisitor<Long> getTimestamp = new IndexableVisitor<Long>() {
-        @Override
-        public Long visit(Arende ärende) {
-          return ärende.getRegistrerad();
-        }
-
-        @Override
-        public Long visit(Atgard åtgärd) {
-          return åtgärd.getRegistrerad();
-        }
-
-        @Override
-        public Long visit(Dokument dokument) {
-          throw new UnsupportedOperationException();
-        }
-      };
-
-      @Override
-      public int compare(SearchResult o1, SearchResult o2) {
-        Long t1 = o1.getInstance().accept(getTimestamp);
-        Long t2 = o2.getInstance().accept(getTimestamp);
-
-        if (t1 == null && t2 == null) {
-          return 0;
-        } else if (t1 != null && t2 != null) {
-          return t2.compareTo(t1);
-        } else if (t1 == null) {
-          return 1;
-        } else {
-          return -1;
-        }
-      }
-    });
-
+    // default
     sortOrders.put(null, sortOrders.get("score"));
   }
 
@@ -155,135 +112,7 @@ public class SearchServlet extends JSONPostService {
     }
   }
 
-  private IndexableVisitor<Long> getTimestamp = new IndexableVisitor<Long>() {
-    @Override
-    public Long visit(Arende ärende) {
-      return ärende.getRegistrerad();
-    }
 
-    @Override
-    public Long visit(Atgard åtgärd) {
-      return åtgärd.getRegistrerad();
-    }
-
-    @Override
-    public Long visit(Dokument dokument) {
-      throw new UnsupportedOperationException();
-    }
-  };
-
-  private class GetInstanceJSON implements IdentifiableVisitor<JSONObject> {
-
-    @Override
-    public JSONObject visit(Diarium diarium) {
-      try {
-        JSONObject json = new JSONObject(new LinkedHashMap(20));
-        json.put("identity", diarium.getIdentity());
-        json.put("namn", diarium.getNamn());
-        return json;
-      } catch (JSONException je) {
-        throw new RuntimeException(je);
-      }
-
-    }
-
-    @Override
-    public JSONObject visit(Enhet enhet) {
-      try {
-        JSONObject json = new JSONObject(new LinkedHashMap(20));
-        json.put("diarium", enhet.getDiarium().getIdentity());
-        json.put("identity", enhet.getIdentity());
-        json.put("namn", enhet.getNamn());
-        json.put("kod", enhet.getKod());
-        return json;
-      } catch (JSONException je) {
-        throw new RuntimeException(je);
-      }
-    }
-
-    @Override
-    public JSONObject visit(Anvandare användare) {
-      try {
-        JSONObject json = new JSONObject(new LinkedHashMap(20));
-        json.put("diarium", användare.getDiarium().getIdentity());
-        json.put("identity", användare.getIdentity());
-        json.put("namn", användare.getNamn());
-        json.put("signatur", användare.getSignatur());
-        return json;
-      } catch (JSONException je) {
-        throw new RuntimeException(je);
-      }
-    }
-
-    private JSONObject factory(Indexable indexable) throws JSONException {
-      JSONObject json = new JSONObject(new LinkedHashMap(20));
-      json.put("identity", indexable.getIdentity());
-
-      json.put("diarium", indexable.accept(GetDiarium.getInstance()).getIdentity());
-      json.put("diarienummer", indexable.accept(GetDiarienummer.getInstance()).toString());
-
-      return json;
-    }
-
-
-    @Override
-    public JSONObject visit(Arende ärende) {
-      try {
-        JSONObject json = factory(ärende);
-
-        json.put("mening", ärende.getMening());
-
-        if (ärende.getEnhet() != null) {
-          json.put("enhet", ärende.getEnhet().getIdentity());
-        }
-
-        return json;
-      } catch (JSONException je) {
-        throw new RuntimeException(je);
-      }
-    }
-
-
-    @Override
-    public JSONObject visit(Atgard åtgärd) {
-      try {
-        JSONObject json = factory(åtgärd);
-
-        json.put("ärende", åtgärd.getÄrende().getIdentity());
-
-        if (åtgärd.getEnhet() != null) {
-          json.put("enhet", åtgärd.getEnhet().getIdentity());
-        }
-
-        json.put("text", åtgärd.getText());
-
-        json.put("inkom", åtgärd.getInkom());
-        json.put("utgick", åtgärd.getUtgick());
-
-        return json;
-      } catch (JSONException je) {
-        throw new RuntimeException(je);
-      }
-    }
-
-    @Override
-    public JSONObject visit(Dokument dokument) {
-      try {
-        JSONObject json = factory(dokument);
-
-        if (dokument.getÅtgärd() != null) {
-          json.put("åtgärd", dokument.getÅtgärd().getIdentity());
-          if (dokument.getÅtgärd().getEnhet() != null) {
-            json.put("enhet", dokument.getÅtgärd().getEnhet().getIdentity());
-          }
-        }
-
-        return json;
-      } catch (JSONException je) {
-        throw new RuntimeException(je);
-      }
-    }
-  }
 
   private class Searcher {
 
@@ -441,20 +270,6 @@ public class SearchServlet extends JSONPostService {
 
         timersJSON.put("sort", System.currentTimeMillis() - timerStarted);
       }
-
-      GetInstanceJSON getInstanceJSON = new SearchServlet.GetInstanceJSON();
-
-
-//      // select search results to display
-//      timerStarted = System.currentTimeMillis();
-//
-//      JSONArray itemsJSON = new JSONArray();
-//      responseJSON.put("items", itemsJSON);
-//
-//      for (int index = offset; index < end && index < searchResults.size(); index++) {
-//        SearchResult searchResult = searchResults.get(index);
-//        itemsJSON.put(toJSON(index, searchResult));
-//      }
 
 
       timersJSON.put("assemble", System.currentTimeMillis() - timerStarted);
@@ -614,7 +429,7 @@ public class SearchServlet extends JSONPostService {
       responseJSON.put("instances", instancesJSON);
       instances.remove(null); // we might have added null values..
       for (Identitfiable instance : instances) {
-        instancesJSON.put(instance.accept(getInstanceJSON));
+        instancesJSON.put(instance.accept(GetSearchResultInstanceJSON.getInstance()));
       }
       timersJSON.put("instances", System.currentTimeMillis() - timerStarted);
 
@@ -644,7 +459,7 @@ public class SearchServlet extends JSONPostService {
         searchResultJSON.put("explanation", searchResult.getExplanation().toHtml());
       }
 
-      searchResultJSON.put("timestamp", searchResult.getInstance().accept(getTimestamp));
+      searchResultJSON.put("timestamp", searchResult.getInstance().accept(GetTimestamp.getInstance()));
 
       searchResultJSON.put("type", searchResult.getInstance().getClass().getSimpleName());
       searchResultJSON.put("instance", searchResult.getInstance().getIdentity());
