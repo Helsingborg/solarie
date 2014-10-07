@@ -3,10 +3,12 @@ data
 log.txt
 server.pid
 
-# jetbrains intellij idea
+# OS X
+**/.DS_Store
+
+# Jetbrains Intellij Idea
 .idea
 *.iml
-
 
 # fyffe.kodapan.se
 src/main/resources/diarier.fyffe.local.json
