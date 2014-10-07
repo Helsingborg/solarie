@@ -1,13 +1,12 @@
 target
 data
+log.txt
+server.pid
 
 # jetbrains intellij idea
 .idea
 *.iml
 
-log.txt
-nohup.out
-server.pid
 
 # fyffe.kodapan.se
 src/main/resources/diarier.fyffe.local.json

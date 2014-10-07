@@ -15,9 +15,10 @@
 
 export MAVEN_OPTS="-Xmx1g -Xms256m"
 
-echo $! > server.pid
+
 echo "Sending output to log.txt..."
 mvn jetty:run >> log.txt 2>&1 &
+echo $! > server.pid
 echo "Waiting for process to terminate..."
 wait
 
