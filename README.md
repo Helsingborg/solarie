@@ -23,10 +23,6 @@ Tanka hem sqljdbc4 från Microsoft på http://www.microsoft.com/download/en/deta
     export LANG=en_US.UTF-8
     export LC_ALL=en_US.UTF-8
     ^C
-    root@solarie:/home/solarie# exit
-    exit
-    solarie@solarie:~$ su
-    Password:
     root@solarie:/home/solarie# apt-get install git-core openjdk-7-jdk maven2
     root@solarie:/home/solarie# exit
     exit
